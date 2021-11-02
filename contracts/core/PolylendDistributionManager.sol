@@ -147,7 +147,7 @@ contract PolylendDistributionManager is IPolylendDistributionManager {
     ) internal returns (uint256) {
         uint256 oldIndex = assetConfig.index;
         uint128 lastUpdateTimestamp = assetConfig.lastUpdateTimestamp;
-        uint128 curTimestamp = (uint128)(block.timestamp);
+        uint128 curTimestamp = uint128(block.timestamp);
 
         if (curTimestamp == lastUpdateTimestamp) {
             return oldIndex;
@@ -199,6 +199,17 @@ contract PolylendDistributionManager is IPolylendDistributionManager {
         // update ratio between atoken and validations token
         if ( assetData.id < _assetPool.length ) {
             AssetAddress memory assetAddr = _assetPool[assetData.id];
+            address otherAsset = address(0);
+
+            if ( assetAddr.aToken != asset ) {
+                otherAsset = assetAddr.aToken;
+            }
+            else {
+                otherAsset = assetAddr.variableToken;
+            }
+
+            _updateAssetStateInternal(otherAsset, assets[otherAsset], IERC20(otherAsset).totalSupply());
+
             if ( assetAddr.aToken == asset
               || assetAddr.variableToken == asset ) {
                 _updateRatio(assets[assetAddr.aToken],
@@ -231,15 +242,23 @@ contract PolylendDistributionManager is IPolylendDistributionManager {
              totalBalance == 0 ||
              lastUpdateTimestamp == block.timestamp ||
              lastUpdateTimestamp >= DISTRIBUTION_END ||
-             ratio == 0 ) {
+             ratio <= 1 ) {
             return currentIndex;
         }
 
         uint256 currentTimestamp =
             block.timestamp > DISTRIBUTION_END ? DISTRIBUTION_END : block.timestamp;
         uint256 timeDelta = currentTimestamp.sub(lastUpdateTimestamp);
-        uint256 index = emissionPerSecond.mul(timeDelta).mul(_PRECISION).div(totalBalance).add(currentIndex);
-        index = index.mul(ratio).div(RATIO_BASE);
+        uint256 index = emissionPerSecond.mul(timeDelta).mul(_PRECISION);
+        if ( ratio < 9999 ) {
+            index = index.mul(ratio).div(RATIO_BASE);
+        }
+        index = index.div(totalBalance).add(currentIndex);
+
+        //uint256 index = emissionPerSecond.mul(timeDelta).mul(_PRECISION).div(totalBalance).add(currentIndex);
+        /*if ( ratio < 9999 ) {
+            index = index.mul(ratio).div(RATIO_BASE);
+        }*/
         return index;
     }
 

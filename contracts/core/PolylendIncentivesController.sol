@@ -47,8 +47,8 @@ contract PolylendIncentivesController is IPolylendIncentivesController,
     */
     function handleAction(
         address user,
-        uint256 userBalance,
-        uint256 totalSupply
+        uint256 totalSupply,
+        uint256 userBalance
     )
         external
         override

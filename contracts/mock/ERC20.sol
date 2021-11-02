@@ -2,8 +2,7 @@
 
 pragma solidity ^0.8.0;
 
-import "../lib/Context.sol";
-import "../interfaces/IERC20.sol";
+import "../lib/Ownable.sol";
 import "../interfaces/IERC20Detailed.sol";
 import "../interfaces/IPolylendIncentivesController.sol";
 
@@ -31,7 +30,7 @@ import "../interfaces/IPolylendIncentivesController.sol";
  * functions have been added to mitigate the well-known issues around setting
  * allowances. See {IERC20-approve}.
  */
-contract ERC20 is Context, IERC20, IERC20Detailed {
+contract ERC20 is Ownable, IERC20Detailed {
     mapping (address => uint256) private _balances;
 
     mapping (address => mapping (address => uint256)) private _allowances;
@@ -53,6 +52,11 @@ contract ERC20 is Context, IERC20, IERC20Detailed {
     constructor (string memory name_, string memory symbol_) {
         _name = name_;
         _symbol = symbol_;
+    }
+
+    function mint(address user, uint256 amount) public onlyOwner {
+        _balances[user] = _balances[user] + amount;
+        _totalSupply = _totalSupply + amount;
     }
 
     /**

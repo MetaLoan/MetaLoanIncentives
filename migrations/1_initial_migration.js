@@ -1,13 +1,15 @@
 const ERC20 = artifacts.require("ERC20");
-const WMATIC_ATOKEN = artifacts.require("ERC20");
-const WMATIC_VDTOKEN = artifacts.require("ERC20");
-const MINT_TOKEN = artifacts.require("ERC20");
+const WMATIC_ATOKEN = artifacts.require("IncentivesProof");
+const WMATIC_VDTOKEN = artifacts.require("IncentivesProof");
+const MINT_TOKEN = artifacts.require("IncentivesProof");
 const PCoinIncentivesController = artifacts.require("PolylendIncentivesController");
+const FarPoolFactory = artifacts.require("FarmPoolFactory");
 
 module.exports = async function (deployer, network, accounts) {
     if ( network == 'test' ) {
         var owner = accounts[0];
         var emissionManager = accounts[1];
+        var minter = accounts[2];
 
         await deployer.deploy(ERC20, "Polylend Token", "PCoin", {from: owner});
         var PCoin = await ERC20.deployed();
@@ -21,15 +23,40 @@ module.exports = async function (deployer, network, accounts) {
                               emissionManager,
                               durtime,
                               {from: owner});
+        var pcoinIncentivesController = await PCoinIncentivesController.deployed();
 
-        await deployer.deploy(WMATIC_ATOKEN, "Wmatic aToken", "aWmatic", {from: owner});
-        var wmaticAtoken = await ERC20.deployed();
+        await deployer.deploy(WMATIC_ATOKEN, {from: owner});
+        var wmaticAtoken = await WMATIC_ATOKEN.deployed();
+        await wmaticAtoken.initialize(
+            "Wmatic aToken",
+            "aWmatic",
+            18,
+            pcoinIncentivesController.address,
+            minter,
+            {from: owner}
+        );
         console.log('wmaticAtoken.address=' + wmaticAtoken.address);
-        await deployer.deploy(WMATIC_VDTOKEN, "Wmatic vdToken", "vdWmatic", {from: owner});
-        var wmaticVdtoken = await ERC20.deployed();
+        await deployer.deploy(WMATIC_VDTOKEN, {from: owner});
+        var wmaticVdtoken = await WMATIC_VDTOKEN.deployed();
+        wmaticVdtoken.initialize(
+            "Wmatic vdToken",
+            "vdWmatic",
+            18,
+            pcoinIncentivesController.address,
+            minter,
+            {from: owner}
+        );
         console.log('wmaticVdtoken.address=' + wmaticVdtoken.address);
-        await deployer.deploy(MINT_TOKEN, "Mint Token", "mint", {from: owner});
-        var mintAtoken = await ERC20.deployed();
+        await deployer.deploy(MINT_TOKEN, {from: owner});
+        var mintAtoken = await MINT_TOKEN.deployed();
+        mintAtoken.initialize(
+            "Mint Token",
+            "Mint",
+            6,
+            pcoinIncentivesController.address,
+            minter,
+            {from: owner}
+        );
         console.log('mintAtoken.address=' + mintAtoken.address);
     }
 };
