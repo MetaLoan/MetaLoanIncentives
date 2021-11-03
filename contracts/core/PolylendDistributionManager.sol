@@ -282,7 +282,13 @@ contract PolylendDistributionManager is IPolylendDistributionManager {
         uint256 variableTokenTotalSupply
     ) internal
     {
-        if ( aTokenTotalSupply == 0 || variableTokenTotalSupply == 0 ) {  // the maximum ratio
+        if ( variableTokenTotalSupply > 0 && aTokenTotalSupply == 0 ) {
+            aTokenConfig.ratio = 1;
+            variableTokenConfig.ratio = RATIO_BASE.sub(1);
+            return;
+        }
+
+        if ( variableTokenTotalSupply == 0 ) {  // the maximum ratio
             aTokenConfig.ratio = RATIO_BASE.sub(1);
             variableTokenConfig.ratio = 1;
             return;

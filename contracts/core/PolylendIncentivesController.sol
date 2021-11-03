@@ -12,6 +12,8 @@ import {VersionedInitializable} from '../utils/VersionedInitializable.sol';
 import {PolylendDistributionManager} from './PolylendDistributionManager.sol';
 import {Address} from '../lib/Address.sol';
 
+import {DebugTool} from '../lib/DebugTool.sol';
+
 contract PolylendIncentivesController is IPolylendIncentivesController,
                                          VersionedInitializable,
                                          PolylendDistributionManager
@@ -78,6 +80,11 @@ contract PolylendIncentivesController is IPolylendIncentivesController,
             userState[i].totalStaked = IERC20Detailed(assets[i]).totalSupply();
         }
         unclaimedRewards = unclaimedRewards.add(_getUnclaimedRewards(user, userState));
+
+        uint256 balance = REWARD_TOKEN.balanceOf(address(this));
+        if ( balance < unclaimedRewards ) {
+            unclaimedRewards = balance;
+        }
         return unclaimedRewards;
     }
 
@@ -117,7 +124,18 @@ contract PolylendIncentivesController is IPolylendIncentivesController,
         uint256 amountToClaim = amount > unclaimedRewards ? unclaimedRewards : amount;
         _usersUnclaimedRewards[user] = unclaimedRewards - amountToClaim; // Safe due to the previous line
 
-        REWARD_TOKEN.transfer(to, amountToClaim);
+        uint256 balance = REWARD_TOKEN.balanceOf(address(this));
+
+        if ( amountToClaim > balance ) {
+            amountToClaim = balance;
+        }
+
+        if ( amountToClaim > 0 ) {
+            REWARD_TOKEN.transfer(to, amountToClaim);
+        }
+        else {
+            require(false, 'reward fail for incentives pool is empty');
+        }
 
         emit RewardsClaimed(msg.sender, to, amountToClaim);
         return amountToClaim;

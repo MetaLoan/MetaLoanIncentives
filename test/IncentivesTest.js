@@ -21,6 +21,8 @@ let Andy;
 let James;
 let Joan;
 
+var assets = [];
+
 // mint start timestamp
 var mintWmaticAtokenSTime = 0;
 var mintMintTokenSTime = 0;
@@ -45,7 +47,6 @@ async function sleep(delay) {
   var start = (new Date()).getTime();
   console.log(start + "," + delay)
   while ((new Date()).getTime() - start < delay) {
-      // 使用  continue 实现；
       continue;
   }
 }
@@ -81,6 +82,13 @@ contract('PCoinIncentivesController', async accounts => {
 
             isInit = false;
             console.log(new BigNumber(await PCoinIncentives.getBlockTime()).toNumber());
+
+            // mint reward
+            var mintSupply = web3.utils.toWei('100', 'ether');
+            await PCoin.mint(PCoinIncentivesController.address, mintSupply, {from: owner});
+
+            assets.push(WmaticAtoken.address);
+            assets.push(WmaticVdtoken.address);
         }
     });
 
@@ -144,9 +152,6 @@ contract('PCoinIncentivesController', async accounts => {
     });
 
     it('getReward', async() => {
-        var assets = [];
-        assets.push(WmaticAtoken.address);
-
         var reward = new BigNumber(await PCoinIncentives.getRewardsBalance(assets, Andy, {from: Andy}));
         var curBlockTime = new BigNumber(await PCoinIncentives.getBlockTime());
         curBlockTime = curBlockTime.minus(mintStartTimestamp);
@@ -169,9 +174,6 @@ contract('PCoinIncentivesController', async accounts => {
         //var totalSupply = new BigNumber(await WmaticAtoken.totalSupply()).div(WAY);
         //var userBalance = new BigNumber(await WmaticAtoken.balanceOf(Andy)).div(WAY);
         //console.log(totalSupply.toNumber() + ":" + userBalance.toNumber());
-
-        var assets = [];
-        assets.push(WmaticAtoken.address);
 
         var curBlockTime = new BigNumber(await PCoinIncentives.getBlockTime());
         //console.log(curBlockTime.toNumber());
@@ -202,10 +204,6 @@ contract('PCoinIncentivesController', async accounts => {
         var userBalance = web3.utils.toWei('5', 'ether');
         await WmaticVdtoken.mint(Joan, userBalance.toString(), {from: minter});
 
-        var assets = [];
-        assets.push(WmaticAtoken.address);
-        assets.push(WmaticVdtoken.address);
-        console.log(assets);
         var curBlockTime = new BigNumber(await PCoinIncentives.getBlockTime());
         console.log(curBlockTime.toNumber());
         var mintEmissionParams = await PCoinIncentives.assets(WmaticAtoken.address);
@@ -269,17 +267,15 @@ contract('PCoinIncentivesController', async accounts => {
         await PCoinIncentives.configureAssets(AssetConfigInput, {from: emissionManager});
 
         curBlockTime = new BigNumber(await PCoinIncentives.getBlockTime());
-        //console.log(curBlockTime.toNumber());
-        curBlockTime = curBlockTime.minus(mintStartTimestamp);
-        g_mintTotalSupply = curBlockTime.multipliedBy(curWmaticAtokenEmissionRate);
-        //console.log(g_mintTotalSupply.toNumber());
+        console.log(curBlockTime.toNumber());
+        var t_curBlockTime = curBlockTime;
+        var t_curBlockTime = t_curBlockTime.minus(mintStartTimestamp);
+        g_mintTotalSupply = t_curBlockTime.multipliedBy(curWmaticAtokenEmissionRate);
+        console.log(g_mintTotalSupply.toNumber());
         curWmaticAtokenEmissionRate = new BigNumber(emissionPerSecond.toString()).div(WAY);
-        mintStartTimestamp = new BigNumber(await PCoinIncentives.getBlockTime());
-        //console.log(mintStartTimestamp.toNumber());
-
-        var assets = [];
-        assets.push(WmaticAtoken.address);
-        assets.push(WmaticVdtoken.address);
+        //mintStartTimestamp = new BigNumber(await PCoinIncentives.getBlockTime());
+        mintStartTimestamp = curBlockTime;
+        console.log('change mint start time=' + mintStartTimestamp.toNumber());
 
         AndyReward = new BigNumber(await PCoinIncentives.getRewardsBalance(assets, Andy, {from: Andy}));
         JamesReward = new BigNumber(await PCoinIncentives.getRewardsBalance(assets, James, {from: James}));
@@ -292,14 +288,90 @@ contract('PCoinIncentivesController', async accounts => {
         //           + ',' + AndyReward.plus(JamesReward).plus(JoanReward).toNumber().toFixed(5));
         assert.equal( AndyReward.plus(JamesReward).plus(JoanReward).toNumber().toFixed(5), g_mintTotalSupply.toNumber() );
 
-        var mintEmissionParams = await PCoinIncentives.assets(WmaticAtoken.address);
-        await PrintAsset(mintEmissionParams, (await WmaticAtoken.symbol()));
-        mintEmissionParams = await PCoinIncentives.assets(WmaticVdtoken.address);
-        await PrintAsset(mintEmissionParams, (await WmaticVdtoken.symbol()));
+        //var mintEmissionParams = await PCoinIncentives.assets(WmaticAtoken.address);
+        //await PrintAsset(mintEmissionParams, (await WmaticAtoken.symbol()));
+        //mintEmissionParams = await PCoinIncentives.assets(WmaticVdtoken.address);
+        //await PrintAsset(mintEmissionParams, (await WmaticVdtoken.symbol()));
 
+        var userBalance = web3.utils.toWei('5', 'ether');
+        await WmaticVdtoken.burn(Joan, userBalance.toString(), {from: minter});
+        curBlockTime = new BigNumber(await PCoinIncentives.getBlockTime());
+        //console.log(curBlockTime.toNumber() + ',' + mintStartTimestamp.toNumber());
 
+        AndyReward = new BigNumber(await PCoinIncentives.getRewardsBalance(assets, Andy, {from: Andy}));
+        JamesReward = new BigNumber(await PCoinIncentives.getRewardsBalance(assets, James, {from: James}));
+        JoanReward = new BigNumber(await PCoinIncentives.getRewardsBalance(assets, Joan, {from: Joan}));
+        AndyReward = AndyReward.div(WAY);
+        JamesReward = JamesReward.div(WAY);
+        JoanReward = JoanReward.div(WAY);
+        console.log(AndyReward.toNumber() + ',' + JamesReward.toNumber() + ',' + JoanReward.toNumber()
+                    + ',' + AndyReward.plus(JamesReward).plus(JoanReward).toNumber().toFixed(5));
+        curBlockTime = new BigNumber(await PCoinIncentives.getBlockTime());
+        console.log(curBlockTime.toNumber());
+        curBlockTime = curBlockTime.minus(mintStartTimestamp);
+        mintTotal = curBlockTime.multipliedBy(curWmaticAtokenEmissionRate);
+        assert.equal( AndyReward.plus(JamesReward).plus(JoanReward).toNumber().toFixed(5), g_mintTotalSupply.plus(mintTotal).toNumber() );
+        //console.log(g_mintTotalSupply.plus(mintTotal).toNumber());
     });
 
     it ('check-reward', async() => {
+        var JoanRewards = new BigNumber(await PCoinIncentives.getUserUnclaimedRewards(Joan));
+        // console.log( JoanRewards.div(WAY).toNumber() );
+
+        await PCoinIncentives.claimRewards(assets, JoanRewards, Joan, {from: Joan});
+        var JoanPcoinBalance = new BigNumber( await PCoin.balanceOf(Joan));
+        // console.log( JoanPcoinBalance.div(WAY).toNumber() );
+        assert.equal( JoanRewards.toNumber().toFixed(8), JoanPcoinBalance.toNumber().toFixed(8) );
+        //console.log( checkReward.logs[5].args['amount'].toString() );
+        var curBlockTime = new BigNumber(await PCoinIncentives.getBlockTime());
+        console.log(curBlockTime.toNumber());
+    });
+
+    it ('burn-over', async() => {
+        var AndyBalance = new BigNumber(await WmaticAtoken.balanceOf(Andy));
+        var JamesBalance = new BigNumber(await WmaticAtoken.balanceOf(James));
+        var JoanBalance = new BigNumber(await WmaticVdtoken.balanceOf(Joan));
+        //console.log(AndyBalance.div(WAY).toNumber() + "," +
+        //            JamesBalance.div(WAY).toNumber() + "," +
+        //            JoanBalance.div(WAY).toNumber());
+        await WmaticVdtoken.burn(Joan, JoanBalance, {from: minter});
+        await WmaticAtoken.burn(Andy, AndyBalance, {from: minter});
+        await WmaticAtoken.burn(James, JamesBalance, {from: minter});
+        //var mintEmissionParams = await PCoinIncentives.assets(WmaticAtoken.address);
+        //await PrintAsset(mintEmissionParams, (await WmaticAtoken.symbol()));
+        //mintEmissionParams = await PCoinIncentives.assets(WmaticVdtoken.address);
+        //await PrintAsset(mintEmissionParams, (await WmaticVdtoken.symbol()));
+        var curBlockTime = new BigNumber(await PCoinIncentives.getBlockTime());
+        console.log(curBlockTime.toNumber());
+        curBlockTime = curBlockTime.minus(mintStartTimestamp);
+        mintTotal = curBlockTime.multipliedBy(curWmaticAtokenEmissionRate);
+        g_mintTotalSupply = g_mintTotalSupply.plus(mintTotal);
+        console.log(g_mintTotalSupply.toNumber());
+
+        var AndyRewards = new BigNumber(await PCoinIncentives.getRewardsBalance(assets, Andy));
+        var JamesRewards = new BigNumber(await PCoinIncentives.getRewardsBalance(assets, James));
+        var JoanRewards = new BigNumber(await PCoinIncentives.getRewardsBalance(assets, Joan));
+        var JoanPcoinBalance = new BigNumber( await PCoin.balanceOf(Joan));
+//        console.log(AndyRewards.div(WAY).toNumber() + "," +
+//                    JamesRewards.div(WAY).toNumber() + "," +
+//                    JoanRewards.div(WAY).toNumber() + "," +
+//                    JoanPcoinBalance.div(WAY).toNumber() + "," +
+//                    AndyRewards.plus(JamesRewards).plus(JoanRewards).plus(JoanPcoinBalance).div(WAY));
+        assert.equal( AndyRewards.plus(JamesRewards).plus(JoanRewards).plus(JoanPcoinBalance).div(WAY).toNumber().toFixed(8),
+                      g_mintTotalSupply.toNumber().toFixed(8));
+        curBlockTime = new BigNumber(await PCoinIncentives.getBlockTime());
+        console.log(curBlockTime.toNumber());
+
+        // re-mint for andy
+        var userBalance = web3.utils.toWei('5', 'ether');
+        await WmaticAtoken.mint(Andy, userBalance.toString(), {from: minter});
+        curBlockTime = new BigNumber(await PCoinIncentives.getBlockTime());
+        console.log(curBlockTime.toNumber());
+        var AndyRewards1 = new BigNumber(await PCoinIncentives.getRewardsBalance(assets, Andy));
+        var JamesRewards1 = new BigNumber(await PCoinIncentives.getRewardsBalance(assets, James));
+        var JoanRewards1 = new BigNumber(await PCoinIncentives.getRewardsBalance(assets, Joan));
+        assert.equal(AndyRewards1.toNumber(), AndyRewards.toNumber());
+        assert.equal(JamesRewards1.toNumber(), JamesRewards.toNumber());
+        assert.equal(JoanRewards1.toNumber(), JoanRewards.toNumber());
     });
 })
