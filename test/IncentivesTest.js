@@ -129,6 +129,8 @@ contract('PCoinIncentivesController', async accounts => {
         mintEmissionParams = await PCoinIncentives.assets(WmaticVdtoken.address);
         await PrintAsset(mintEmissionParams, (await WmaticVdtoken.symbol()));
 
+        var assetPool = await PCoinIncentives._assetPool(0);
+        console.log(assetPool);
         // test success for configureAssets by other account not emissionManager
         // await PCoinIncentives.configureAssets(AssetConfigInput, {from: owner});
     });
@@ -138,9 +140,11 @@ contract('PCoinIncentivesController', async accounts => {
         //console.log(userBalance.toString());
         await WmaticAtoken.mint(Andy, userBalance.toString(), {from: minter});
 
-        //var totalSupply = new BigNumber(await WmaticAtoken.totalSupply()).div(WAY);
-        //userBalance = new BigNumber(await WmaticAtoken.balanceOf(Andy)).div(WAY);
-        //console.log(totalSupply.toNumber() + ":" + userBalance.toNumber());
+        var mintEmissionParams = await PCoinIncentives.assets(WmaticAtoken.address);
+        await PrintAsset(mintEmissionParams, (await WmaticAtoken.symbol()));
+        mintEmissionParams = await PCoinIncentives.assets(WmaticVdtoken.address);
+        await PrintAsset(mintEmissionParams, (await WmaticVdtoken.symbol()));
+
         console.log(new BigNumber(await PCoinIncentives.getBlockTime()).toNumber());
         mintStartTimestamp = new BigNumber(await PCoinIncentives.getBlockTime());
 
@@ -152,6 +156,8 @@ contract('PCoinIncentivesController', async accounts => {
     });
 
     it('getReward', async() => {
+        var index = new BigNumber(await PCoinIncentives.getUserIndex(WmaticAtoken.address, Andy));
+        console.log('xxxx=' + index.toNumber());
         var reward = new BigNumber(await PCoinIncentives.getRewardsBalance(assets, Andy, {from: Andy}));
         var curBlockTime = new BigNumber(await PCoinIncentives.getBlockTime());
         curBlockTime = curBlockTime.minus(mintStartTimestamp);
@@ -374,4 +380,23 @@ contract('PCoinIncentivesController', async accounts => {
         assert.equal(JamesRewards1.toNumber(), JamesRewards.toNumber());
         assert.equal(JoanRewards1.toNumber(), JoanRewards.toNumber());
     });
+
+    it ('retrieve', async() => {
+        var PCoinBalance = new BigNumber(await PCoin.balanceOf(PCoinIncentives.address));
+        //console.log(PCoinBalance.toNumber());
+        //var event = await PCoinIncentives.retrieve(PCoinBalance, {from: Andy});
+        var AndyRewards = new BigNumber(await PCoinIncentives.getRewardsBalance(assets, Andy));
+        console.log(AndyRewards.toNumber());
+
+        var event = await PCoinIncentives.retrieve(PCoinBalance, {from: owner});
+        var PCoinBalance1 = new BigNumber(await PCoin.balanceOf(owner));
+        assert.equal(PCoinBalance.toNumber(), PCoinBalance1.toNumber());
+
+        AndyRewards = new BigNumber(await PCoinIncentives.getRewardsBalance(assets, Andy));
+        console.log(AndyRewards.toNumber());
+        // await PCoinIncentives.claimRewards(assets, AndyRewards, Andy, {from: Andy});
+        //console.log(PCoinBalance.toNumber());
+        //console.log(event);
+    });
+
 })

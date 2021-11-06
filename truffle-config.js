@@ -23,6 +23,14 @@
 // const fs = require('fs');
 // const mnemonic = fs.readFileSync(".secret").toString().trim();
 
+const HDWalletProvider = require('@truffle/hdwallet-provider');
+//
+const fs = require('fs');
+const mnemonic = fs.readFileSync(".secret").toString().trim();
+console.log('private key:' + mnemonic);
+let mnemonicArr = mnemonic.split(',');
+console.log(mnemonicArr);
+
 module.exports = {
   /**
    * Networks define how you connect to your ethereum client and let you set the
@@ -35,6 +43,7 @@ module.exports = {
    */
 
   networks: {
+
     // Useful for testing. The `development` name is special - truffle uses it by default
     // if it's defined here and no other network is specified at the command line.
     // You should run a client (like ganache-cli, geth or parity) in a separate terminal
@@ -71,6 +80,22 @@ module.exports = {
     // network_id: 2111,   // This network is yours, in the cloud.
     // production: true    // Treats this network as if it was a public net. (default: false)
     // }
+    mumbai: {
+       provider: function() {
+            return new HDWalletProvider(mnemonicArr,
+                                        //'https://polygon-mumbai.infura.io/v3/8141e840c2f4470e84c7e2d70b85a6d7',
+                                        'https://matic-mumbai.chainstacklabs.com',
+                                        0,
+                                        mnemonicArr.length,
+                                        false);
+       },
+       network_id: "80001",       // Any network (default: none)
+       //gas: 20000000,
+       //gasPrice: 100000000000,
+       networkCheckTimeout: 30000,
+       from: '0xb1b4C08D9dBA94Af1A1a142cB87F22637B01829D',
+       skipDryRun: true
+     }
   },
 
   // Set default mocha options here, use special reporters etc.

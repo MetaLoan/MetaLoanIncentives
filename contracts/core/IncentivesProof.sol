@@ -70,10 +70,6 @@ contract IncentivesProof is IIncentivesProof, Ownable {
         emit Burn(user, amount);
     }
 
-    function balanceOf(address account) external view override returns (uint256) {
-        return _balances[account];
-    }
-
     function name() external view override returns (string memory) {
         return _name;
     }
@@ -86,7 +82,19 @@ contract IncentivesProof is IIncentivesProof, Ownable {
         return _symbol;
     }
 
+    function balanceOf(address account) external view override returns (uint256) {
+        return _balances[account];
+    }
+
+    function scaledBalanceOf(address account) external view override returns (uint256) {
+        return _balances[account];
+    }
+
     function totalSupply() external view override returns (uint256) {
+        return _totalSupply;
+    }
+
+    function scaledTotalSupply() external view returns (uint256) {
         return _totalSupply;
     }
 

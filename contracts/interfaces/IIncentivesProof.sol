@@ -40,6 +40,20 @@ interface IIncentivesProof is IERC20Detailed {
     */
     function burn(address user, uint256 amount) external;
 
+    /**
+     * @dev Returns the scaled balance of the user. The scaled balance is the sum of all the
+     * updated stored balance divided by the reserve's liquidity index at the moment of the update
+     * @param account The account whose balance is calculated
+     * @return The scaled balance of the user
+     **/
+    function scaledBalanceOf(address account) external view returns (uint256);
+
+    /**
+     * @dev Returns the scaled total supply of the variable debt token. Represents sum(debt/index)
+     * @return The scaled total supply
+     **/
+    function scaledTotalSupply() external view returns (uint256);
+
     /*
     * @dev mint event is called by user who is minted token
     * @param user who mint token

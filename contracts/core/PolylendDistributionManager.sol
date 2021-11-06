@@ -5,12 +5,14 @@ pragma experimental ABIEncoderV2;
 import {SafeMath} from '../lib/SafeMath.sol';
 import {DebugTool} from '../lib/DebugTool.sol';
 import {DistributionTypes} from '../lib/DistributionTypes.sol';
+import {Address} from "../lib/Address.sol";
 
-import {IERC20} from "../interfaces/IERC20.sol";
+import {IIncentivesProof} from '../interfaces/IIncentivesProof.sol';
 import {IPolylendDistributionManager} from "../interfaces/IPolylendDistributionManager.sol";
 
 contract PolylendDistributionManager is IPolylendDistributionManager {
     using SafeMath for uint256;
+    using Address for address;
 
     /******** emission ratio modify algorithm ********/
     // Ratio = (20% - Ut%/5)*100: the emission ratio between atoken and variable debt token
@@ -66,6 +68,7 @@ contract PolylendDistributionManager is IPolylendDistributionManager {
         for (uint256 i = 0; i < assetsConfigInput.length; i++) {
             AssetData storage atokenConfig = assets[assetsConfigInput[i].aToken];
             AssetData storage variableTokenConfig = assets[assetsConfigInput[i].variableToken];
+            require(assetsConfigInput[i].aToken.isContract(), "aToken must contract");
 
             _updateAssetStateInternal(
                 assetsConfigInput[i].aToken,
@@ -73,11 +76,14 @@ contract PolylendDistributionManager is IPolylendDistributionManager {
                 assetsConfigInput[i].aTokenStaked
             );
 
-            _updateAssetStateInternal(
-                assetsConfigInput[i].variableToken,
-                variableTokenConfig,
-                assetsConfigInput[i].variableTokenStaked
-            );
+            if ( assetsConfigInput[i].variableToken != address(0) ) {
+                require(assetsConfigInput[i].variableToken.isContract(), "variableToken must contract");
+                _updateAssetStateInternal(
+                    assetsConfigInput[i].variableToken,
+                    variableTokenConfig,
+                    assetsConfigInput[i].variableTokenStaked
+                );
+            }
 
             if ( atokenConfig.ratio == 0 && variableTokenConfig.ratio == 0 ) {
                 AssetAddress memory assetAddress;
@@ -180,6 +186,10 @@ contract PolylendDistributionManager is IPolylendDistributionManager {
         uint256 stakedByUser,
         uint256 totalStaked
     ) internal returns (uint256) {
+        if ( asset == address(0) ) {
+            return 0;
+        }
+
         AssetData storage assetData = assets[asset];
         uint256 userIndex = assetData.users[user];
         uint256 accruedRewards = 0;
@@ -188,34 +198,39 @@ contract PolylendDistributionManager is IPolylendDistributionManager {
         uint256 newIndex = _updateAssetStateInternal(asset, assetData, totalStaked);
 
         if (userIndex != newIndex) {
-            if (stakedByUser != 0) {
-                accruedRewards = _getRewards(stakedByUser, newIndex, userIndex);
+            if ( stakedByUser != 0 ) {
+                if ( userIndex > 0 ) {
+                    accruedRewards = _getRewards(stakedByUser, newIndex, userIndex);
+                }
             }
 
             assetData.users[user] = newIndex;
             emit UserIndexUpdated(user, asset, newIndex);
         }
 
-        // update ratio between atoken and validations token
+        if ( assetData.users[user] == 0 ) {
+            assetData.users[user] = 1;
+        }
+
+        // update ratio between atoken and variable token
         if ( assetData.id < _assetPool.length ) {
             AssetAddress memory assetAddr = _assetPool[assetData.id];
             address otherAsset = address(0);
 
-            if ( assetAddr.aToken != asset ) {
-                otherAsset = assetAddr.aToken;
-            }
-            else {
+            if ( assetAddr.aToken == asset ) {
                 otherAsset = assetAddr.variableToken;
             }
+            else {
+                otherAsset = assetAddr.aToken;
+            }
 
-            _updateAssetStateInternal(otherAsset, assets[otherAsset], IERC20(otherAsset).totalSupply());
+            if ( otherAsset != address(0) ) {
+                _updateAssetStateInternal(otherAsset, assets[otherAsset], IIncentivesProof(otherAsset).scaledTotalSupply());
 
-            if ( assetAddr.aToken == asset
-              || assetAddr.variableToken == asset ) {
                 _updateRatio(assets[assetAddr.aToken],
-                             IERC20(assetAddr.aToken).totalSupply(),
+                             IIncentivesProof(assetAddr.aToken).scaledTotalSupply(),
                              assets[assetAddr.variableToken],
-                             IERC20(assetAddr.variableToken).totalSupply());
+                             IIncentivesProof(assetAddr.variableToken).scaledTotalSupply());
             }
         }
 
@@ -324,7 +339,11 @@ contract PolylendDistributionManager is IPolylendDistributionManager {
         uint256 reserveIndex,
         uint256 userIndex
     ) internal view returns (uint256) {
-        return principalUserBalance.mul(reserveIndex.sub(userIndex)).div(_PRECISION);
+        uint256 tUserIndex = 0;
+        if ( userIndex > 1 ) {
+            tUserIndex = userIndex;
+        }
+        return principalUserBalance.mul(reserveIndex.sub(tUserIndex)).div(_PRECISION);
     }
 
     /**
@@ -342,18 +361,20 @@ contract PolylendDistributionManager is IPolylendDistributionManager {
 
         for (uint256 i = 0; i < stakes.length; i++) {
             AssetData storage assetConfig = assets[stakes[i].underlyingAsset];
-            uint256 assetIndex =
-                _getAssetIndex(
-                assetConfig.index,
-                assetConfig.emissionPerSecond,
-                assetConfig.lastUpdateTimestamp,
-                stakes[i].totalStaked,
-                assetConfig.ratio
-                );
+            if ( assetConfig.users[user] > 0 ) {
+                uint256 assetIndex =
+                    _getAssetIndex(
+                    assetConfig.index,
+                    assetConfig.emissionPerSecond,
+                    assetConfig.lastUpdateTimestamp,
+                    stakes[i].totalStaked,
+                    assetConfig.ratio
+                    );
 
-            accruedRewards = accruedRewards.add(
-                _getRewards(stakes[i].stakedByUser, assetIndex, assetConfig.users[user])
-            );
+                accruedRewards = accruedRewards.add(
+                    _getRewards(stakes[i].stakedByUser, assetIndex, assetConfig.users[user])
+                );
+            }
         }
         return accruedRewards;
     }

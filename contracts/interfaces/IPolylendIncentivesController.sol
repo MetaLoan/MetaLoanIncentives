@@ -24,4 +24,6 @@ interface IPolylendIncentivesController is IPolylendDistributionManager {
         uint256 amount,
         address to
     ) external returns (uint256);
+
+    function retrieve(uint256 amount) external returns(uint256);
 }
