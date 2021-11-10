@@ -3,7 +3,7 @@ const WMATIC_ATOKEN = artifacts.require("IncentivesProof");
 const WMATIC_VDTOKEN = artifacts.require("IncentivesProof");
 const MINT_TOKEN = artifacts.require("IncentivesProof");
 const PCoinIncentivesController = artifacts.require("PolylendIncentivesController");
-const FarPoolFactory = artifacts.require("FarmPoolFactory");
+const FarmPoolFactory = artifacts.require("FarmPoolFactory");
 
 module.exports = async function (deployer, network, accounts) {
     if ( network == 'test' ) {
@@ -13,6 +13,7 @@ module.exports = async function (deployer, network, accounts) {
 
         await deployer.deploy(ERC20, "Polylend Token", "PCoin", {from: owner});
         var PCoin = await ERC20.deployed();
+        console.log("PCoin address=" + PCoin.address);
 
         let timestamp = (await web3.eth.getBlock()).timestamp;
         console.log('PCoin.address=' + PCoin.address + ",timestamp=" + timestamp);
@@ -58,5 +59,16 @@ module.exports = async function (deployer, network, accounts) {
             {from: owner}
         );
         console.log('mintAtoken.address=' + mintAtoken.address);
+
+        var salt = new Buffer("Polylend Farm Factory", "utf-8");
+        await deployer.deploy(FarmPoolFactory,
+                              PCoin.address,
+                              salt,
+                              {from: owner});
+        console.log('Farm Factory deploys success');
+
+        await deployer.deploy(ERC20, "PCoin Lp Token", "PLPCoin", {from: owner});
+        var lpToken = await ERC20.deployed();
+        console.log("Lp-token address=" + lpToken.address);
     }
 };

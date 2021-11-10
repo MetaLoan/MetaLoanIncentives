@@ -6,51 +6,8 @@ import {Ownable} from '../lib/Ownable.sol';
 import {PolylendIncentivesController} from '../core/PolylendIncentivesController.sol';
 import {IERC20Detailed} from '../interfaces/IERC20Detailed.sol';
 import {DistributionTypes} from '../lib/DistributionTypes.sol';
-import {Address} from '../lib/Address.sol';
-import {SafeERC20} from '../lib/SafeERC20.sol';
 
-contract Farm is Ownable {
-    using Address for address;
-    using SafeERC20 for IERC20Detailed;
-
-    IncentivesProof internal _proof;
-    IERC20Detailed internal _asset;
-
-    /*
-    * @dev initialize
-    * @param implementAsset The address of erc20 token
-    * @param proof The proof for store erc20 token(1:1)
-    */
-    function initialize(
-        address implementAsset,
-        address proof
-    )
-        external
-        onlyOwner
-    {
-        require(implementAsset.isContract(), "farm initialize fail for erc20 invalid");
-        require(proof.isContract(), "farm initialize fail for proof invalid");
-
-        _asset = IERC20Detailed(implementAsset);
-        _proof = IncentivesProof(proof);
-    }
-
-    function deposit(uint256 amount) external {
-        require(amount > 0, "farm deposit fail for amount = 0");
-
-        _asset.safeTransferFrom(_msgSender(), address(this), amount);
-        _proof.mint(_msgSender(), amount);
-    }
-
-    function withdraw(uint256 amount) external {
-        require(amount > 0, "farm withdraw fail for amount = 0");
-
-        uint256 balance = _proof.balanceOf(_msgSender());
-        require(balance >= amount, "farm withdraw fail for balance less amount");
-        _proof.burn(_msgSender(), amount);
-        _asset.safeTransfer(_msgSender(), amount);
-    }
-}
+import {Farm} from "./Farm.sol";
 
 contract FarmPoolFactory is Ownable {
     struct PoolContext{
@@ -60,7 +17,7 @@ contract FarmPoolFactory is Ownable {
 
     // key asset, value is the address of farm
     mapping (address => PoolContext) internal _farms;
-    address[] public _farmList;
+    address[] internal _farmList;
     // IPolylendIncentivesController
     PolylendIncentivesController internal _incentivesController;
     // mint distribution duration = 10 years
@@ -98,6 +55,29 @@ contract FarmPoolFactory is Ownable {
         return address(_incentivesController);
     }
 
+    function getFarmList()
+        external
+        view
+        returns(address[] memory)
+    {
+        return _farmList;
+    }
+
+    function getFarm(address implementAsset)
+        external
+        view
+        returns(PoolContext memory farm)
+    {
+        return _farms[implementAsset];
+    }
+
+    /*
+    * @dev create farm to mint pcoin by add lp-token
+    * @param implementAsset the address of lp-token;
+    * @param name the name of farm proof;
+    * @param symbol the symbol of farm proof;
+    * @param emissionPerSecond the rate of emission in one second.
+    */
     function createFarm(
         address implementAsset,
         string calldata name,
@@ -112,7 +92,7 @@ contract FarmPoolFactory is Ownable {
 
         // step.2 configure asset for incentives controller
         DistributionTypes.AssetConfigInput[] memory input =
-            new DistributionTypes.AssetConfigInput[](1);
+        new DistributionTypes.AssetConfigInput[](1);
 
         input[0].emissionPerSecond = emissionPerSecond;
         input[0].aTokenStaked = 0;

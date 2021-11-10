@@ -12,7 +12,5 @@ module.exports = async function (deployer, network, accounts) {
                               emissionManager,
                               durtime,
                               {from: owner});
-        var ins = (await PolylendIncentivesController.deployed());
-        await ins.retrieve(0, {from: owner});
     }
 };
