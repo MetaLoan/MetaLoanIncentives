@@ -16,4 +16,10 @@ library DistributionTypes {
         uint256 stakedByUser;
         uint256 totalStaked;
     }
+
+    struct AlgorithmInput {
+        uint256 max;
+        uint256 min;
+        uint256 threshold;
+    }
 }

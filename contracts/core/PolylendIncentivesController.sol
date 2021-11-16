@@ -9,7 +9,6 @@ import {Ownable} from '../lib/Ownable.sol';
 
 import {IIncentivesProof} from '../interfaces/IIncentivesProof.sol';
 import {IPolylendIncentivesController} from '../interfaces/IPolylendIncentivesController.sol';
-import {VersionedInitializable} from '../utils/VersionedInitializable.sol';
 import {PolylendDistributionManager} from './PolylendDistributionManager.sol';
 import {Address} from '../lib/Address.sol';
 import {IERC20Detailed} from '../interfaces/IERC20Detailed.sol';
@@ -17,7 +16,6 @@ import {IERC20Detailed} from '../interfaces/IERC20Detailed.sol';
 import {DebugTool} from '../lib/DebugTool.sol';
 
 contract PolylendIncentivesController is IPolylendIncentivesController,
-                                         VersionedInitializable,
                                          PolylendDistributionManager,
                                          Ownable
 {
@@ -25,7 +23,6 @@ contract PolylendIncentivesController is IPolylendIncentivesController,
     using Address for address;
 
     /******* Variable Definition ********/
-    uint256 public constant REVISION = 1;
     // reward token
     IERC20Detailed public immutable REWARD_TOKEN;
     // the unclaimed rewards of user
@@ -176,13 +173,6 @@ contract PolylendIncentivesController is IPolylendIncentivesController,
     */
     function getUserUnclaimedRewards(address _user) external view returns (uint256) {
         return _usersUnclaimedRewards[_user];
-    }
-
-    /**
-       * @dev returns the revision of the implementation contract
-    */
-    function getRevision() internal pure override returns (uint256) {
-        return REVISION;
     }
 }
 

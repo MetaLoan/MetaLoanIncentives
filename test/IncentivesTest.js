@@ -399,4 +399,14 @@ contract('PCoinIncentivesController', async accounts => {
         //console.log(event);
     });
 
+    it ('Config-Algorithm', async() => {
+        var algorithmParams = [
+            9000,
+            2000,
+            8500
+        ];
+
+        await PCoinIncentives.configureAlgorithmParams(algorithmParams, {from: emissionManager});
+    });
+
 })

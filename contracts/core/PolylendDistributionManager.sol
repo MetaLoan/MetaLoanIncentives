@@ -15,13 +15,16 @@ contract PolylendDistributionManager is IPolylendDistributionManager {
     using Address for address;
 
     /******** emission ratio modify algorithm ********/
-    // Ratio = (20% - Ut%/5)*100: the emission ratio between atoken and variable debt token
+    /*
+         Ut = VDTokenSupply / ATokenSupply
+         When VDTokenSupply == 0, aRatio = 100%, vdRatio = 0%;
+         When Ut >= Ut_Threshold, aRatio = 100% - vdRatio_min, vdRatio = vdRatio_min;
+         When Ut < Ut_Threshold,  vdRatio = vdRatio_max - K*Ut, where K = (vdRatio_max-vdRatio_min)/Ut_Threshold.
+    */
     uint256 public constant RATIO_BASE = 10000;    // e.g  Ut=90% => 9000
-    uint256 public constant RATIO_MIN_ATOKEN = 500;
-    uint256 public constant RATIO_MAX_VTOKEN = 9500;
-    uint256 public constant RATIO_MAX_ATOKEN = 6000;
-    uint256 public constant RATIO_MIN_VTOKEN = 4000;
-    uint256 public constant UT_THRESHOLD = 9500;
+    uint256 public VdRatioMax;               // the max ratio for VDToken
+    uint256 public VdRatioMin;               // the min ratio for VDToken
+    uint256 public UtThreshold;              // the threshold for load utilization
 
     /******** Variable Definition  *********/
     struct AssetData {
@@ -53,6 +56,10 @@ contract PolylendDistributionManager is IPolylendDistributionManager {
     constructor(address emissionManager, uint256 distributionDuration) {
         EMISSION_MANAGER = emissionManager;
         DISTRIBUTION_END = block.timestamp.add(distributionDuration);
+
+        VdRatioMax = 9500;
+        VdRatioMin = 4000;
+        UtThreshold = 9500;
     }
 
     /**
@@ -121,6 +128,24 @@ contract PolylendDistributionManager is IPolylendDistributionManager {
                 assetsConfigInput[i].variableTokenStaked
             );
         }
+    }
+
+    /*
+    * @dev configureParams algorithm param for the mint ratio
+    * @params AlgorithmInput the algorithm modify param
+    */
+    function configureAlgorithmParams(DistributionTypes.AlgorithmInput calldata algorithmInput)
+        external
+        override
+    {
+        require(msg.sender == EMISSION_MANAGER, 'ONLY_EMISSION_MANAGER');
+        require(algorithmInput.max > algorithmInput.min, 'Params config fail for max <= min');
+        require(algorithmInput.max < RATIO_BASE, 'Params config fail for max >= RATIO_BASE');
+        require(algorithmInput.threshold < RATIO_BASE, 'Params config fail for threshold >= RATIO_BASE');
+
+        VdRatioMax = algorithmInput.max;
+        VdRatioMin = algorithmInput.min;
+        UtThreshold = algorithmInput.threshold;
     }
 
     function getUserIndex(address asset, address user)
@@ -280,11 +305,10 @@ contract PolylendDistributionManager is IPolylendDistributionManager {
     /**
     * @dev update emission ratio by the total supply between the atoken and variableToken.
     *  algorithm:
-    *
-    *      the maximum ratio is 1:19 when Ut == 0
-    *      the minimum ratio is 1.5:1  when Ut >= 95%
-    *      when
-    *          variableToken.ratio = RATIO_MAX_VTOKEN - (RATIO_MAX_VTOKEN-RATIO_MIN_VTOKEN)/(UT_THRESHOLD) * Ut;
+    *      Ut = VDTokenSupply / ATokenSupply
+    *    When VDTokenSupply == 0, aRatio = 100%, vdRatio = 0%;
+    *    When Ut >= Ut_Threshold, aRatio = 100% - vdRatio_min, vdRatio = vdRatio_min;
+    *    When Ut < Ut_Threshold,  vdRatio = vdRatio_max - K*Ut, where K = (vdRatio_max-vdRatio_min)/Ut_Threshold.
     * @param aTokenConfig Storage pointer to the distribution's atoken config
     * @param aTokenTotalSupply total supply of the atoken
     * @param variableTokenConfig Storage pointer to the distribution's variable token config
@@ -310,18 +334,18 @@ contract PolylendDistributionManager is IPolylendDistributionManager {
         }
 
         uint256 Ut = variableTokenTotalSupply.mul(RATIO_BASE).div(aTokenTotalSupply);
-        if ( Ut >= UT_THRESHOLD ) {
-            aTokenConfig.ratio = RATIO_MAX_ATOKEN;
-            variableTokenConfig.ratio = RATIO_MIN_VTOKEN;
+        if ( Ut >= UtThreshold ) {
+            aTokenConfig.ratio = RATIO_BASE.sub(VdRatioMin);
+            variableTokenConfig.ratio = VdRatioMin;
         }
         else {
-            uint256 x = Ut.mul(RATIO_MAX_VTOKEN-RATIO_MIN_VTOKEN).div(UT_THRESHOLD);
-            variableTokenConfig.ratio = RATIO_MAX_VTOKEN.sub(x);
-            if ( variableTokenConfig.ratio > RATIO_MAX_VTOKEN ) {
-                variableTokenConfig.ratio = RATIO_MAX_VTOKEN;
+            uint256 x = Ut.mul(VdRatioMax-VdRatioMin).div(UtThreshold);
+            variableTokenConfig.ratio = VdRatioMax.sub(x);
+            if ( variableTokenConfig.ratio > VdRatioMax ) {
+                variableTokenConfig.ratio = VdRatioMax;
             }
-            if ( variableTokenConfig.ratio < RATIO_MIN_VTOKEN ) {
-                variableTokenConfig.ratio = RATIO_MIN_VTOKEN;
+            if ( variableTokenConfig.ratio < VdRatioMin ) {
+                variableTokenConfig.ratio = VdRatioMin;
             }
             aTokenConfig.ratio = RATIO_BASE.sub(variableTokenConfig.ratio);
         }

@@ -8,4 +8,7 @@ interface IPolylendDistributionManager {
 
     function configureAssets(DistributionTypes.AssetConfigInput[] calldata assetsConfigInput)
         external;
+
+    function configureAlgorithmParams(DistributionTypes.AlgorithmInput calldata algorithmInput)
+        external;
 }

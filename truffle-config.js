@@ -95,6 +95,14 @@ module.exports = {
        networkCheckTimeout: 30000,
        from: '0xb1b4C08D9dBA94Af1A1a142cB87F22637B01829D',
        skipDryRun: true
+     },
+     bsc_testnet: {
+        provider: () => new HDWalletProvider(mnemonicArr, "https://data-seed-prebsc-2-s2.binance.org:8545/"),
+        network_id: 97,       // bsc Testnet
+        gas: 5500000,
+        confirmations: 2,
+        timeoutBlocks: 200,
+        skipDryRun: true
      }
   },
 
