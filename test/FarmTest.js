@@ -2,12 +2,12 @@ const FarmPoolFactory = artifacts.require("FarmPoolFactory");
 const Farm = artifacts.require("Farm");
 const IncentivesProof = artifacts.require("IncentivesProof");
 const ERC20 = artifacts.require("ERC20");
-const IncentivesController = artifacts.require("PolylendIncentivesController");
+const IncentivesController = artifacts.require("MetaLoanIncentivesController");
 const BigNumber = require('bignumber.js');
 
 
 let farmPoolIns;
-let pcoinIns;
+let mcoinIns;
 let owner;
 let Andy;
 let Joan;
@@ -16,6 +16,15 @@ let icIns;
 
 let WAY;
 let isInit = true;
+
+async function PrintAsset(data, symbol) {
+    console.log("Asset=" + symbol + " emission param:");
+    console.log(" id=" + data.id);
+    console.log(" emissionPerSecond=" + data.emissionPerSecond);
+    console.log(" lastUpdateTimestamp=" + data.lastUpdateTimestamp);
+    console.log(" index=" + data.index);
+    console.log(" ratio=" + data.ratio);
+}
 
 async function printFarmContext(farm) {
     var token = await ERC20.at(farm);
@@ -34,15 +43,19 @@ contract('FarmPoolFactory', async accounts => {
             Joan = accounts[2];
             isInit = false;
 
+            await web3.eth.sendTransaction({from: accounts[6], to: Andy, value: '80000000000000000000'});
+            console.log("ddd=" + new BigNumber(await web3.eth.getBalance(Andy)).toString());
+
             farmPoolIns = await FarmPoolFactory.deployed();
-            pcoinIns = await ERC20.at('0x8CdaF0CD259887258Bc13a92C0a6dA92698644C0');
-            var decimals = await pcoinIns.decimals();
+            mcoinIns = await ERC20.at('0x8CdaF0CD259887258Bc13a92C0a6dA92698644C0');
+            var decimals = await mcoinIns.decimals();
             WAY = new BigNumber('10').exponentiatedBy(decimals);
-            console.log(await pcoinIns.symbol());
-            icIns = await farmPoolIns.getPolylendIncentivesController();
+            console.log(await mcoinIns.symbol());
+            icIns = await farmPoolIns.getMetaLoanIncentivesController();
             icIns = await IncentivesController.at(icIns);
+            console.log("_PRECISION=" + await icIns._PRECISION());
             var MintAmount = new BigNumber('1e+23');
-            await pcoinIns.mint(icIns.address, MintAmount, {from: owner});
+            await mcoinIns.mint(icIns.address, MintAmount, {from: owner});
 
             lpIns = await ERC20.at('0xAa588d3737B611baFD7bD713445b314BD453a5C8');
         }
@@ -50,17 +63,20 @@ contract('FarmPoolFactory', async accounts => {
 
     it('Create Farm', async() => {
         var farmList = await farmPoolIns.getFarmList();
-        // 0.001 pcoin/sec
+        // 0.001 mcoin/sec
         var emissionPerSecond = new BigNumber('0.001');
         emissionPerSecond = emissionPerSecond.multipliedBy(WAY);
         console.log(farmList);
         await farmPoolIns.createFarm(lpIns.address,
-                                     'Polylend Farm LP',
+                                     'MetaLoan Farm LP',
                                      'PFLP',
                                      emissionPerSecond,
                                      {from: owner});
         farmList = await farmPoolIns.getFarmList();
         await printFarmContext(farmList[0]);
+        var farmContext = await farmPoolIns.getFarm(farmList[0]);
+        var mintEmissionParams = await icIns.assets(farmContext.proof);
+        await PrintAsset(mintEmissionParams, 'PFLP');
     });
 
     it ('Farm-Mint', async() => {
@@ -80,10 +96,18 @@ contract('FarmPoolFactory', async accounts => {
 
         var proof = await IncentivesProof.at(farmContext.proof);
         var proofBalance = new BigNumber(await proof.balanceOf(Andy));
-        //console.log('Andy Lp deposit=' + depositAmount.toNumber() + ",proof=" + proofBalance.toNumber());
-        assert.equal(proofBalance.toNumber(), depositAmount.toNumber());
-
+        console.log('Andy Lp deposit=' + depositAmount.toNumber() + ",proof=" + proofBalance.toNumber());
+        //assert.equal(proofBalance.toNumber(), depositAmount.toNumber());
+        approveAmount = new BigNumber(await lpIns.allowance(Andy, farm.address));
+        console.log('Andy Lp deposit=' + depositAmount.toNumber() + ";" + approveAmount.toNumber());
+        console.log("xxxx=" + new BigNumber(await web3.eth.getBalance(Andy)).toString());
+        var mintEmissionParams = await icIns.assets(farmContext.proof);
+        await PrintAsset(mintEmissionParams, 'PFLP');
+        console.log(new BigNumber(await icIns.getUserIndex(farmContext.proof, Andy)).toNumber());
+        console.log(new BigNumber(await icIns.getBlockTime()).toNumber());
         await farm.deposit(depositAmount, {from: Andy});
+        //console.log(new BigNumber(await icIns.getUserIndex(farmContext.proof, Andy)).toNumber());
+        //console.log(new BigNumber(await icIns.getBlockTime()).toNumber());
         await farm.deposit(depositAmount, {from: Joan});
         var assets = [ farmContext.proof ];
         var rewards = new BigNumber(await icIns.getRewardsBalance(assets, Andy));

@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 
 import "../lib/Ownable.sol";
 import "../interfaces/IERC20Detailed.sol";
-import "../interfaces/IPolylendIncentivesController.sol";
+import "../interfaces/IMetaLoanIncentivesController.sol";
 
 /**
  * @dev Implementation of the {IERC20} interface.

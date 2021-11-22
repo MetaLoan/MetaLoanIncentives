@@ -8,15 +8,15 @@ import {DistributionTypes} from '../lib/DistributionTypes.sol';
 import {Ownable} from '../lib/Ownable.sol';
 
 import {IIncentivesProof} from '../interfaces/IIncentivesProof.sol';
-import {IPolylendIncentivesController} from '../interfaces/IPolylendIncentivesController.sol';
-import {PolylendDistributionManager} from './PolylendDistributionManager.sol';
+import {IMetaLoanIncentivesController} from '../interfaces/IMetaLoanIncentivesController.sol';
+import {MetaLoanDistributionManager} from './MetaLoanDistributionManager.sol';
 import {Address} from '../lib/Address.sol';
 import {IERC20Detailed} from '../interfaces/IERC20Detailed.sol';
 
 import {DebugTool} from '../lib/DebugTool.sol';
 
-contract PolylendIncentivesController is IPolylendIncentivesController,
-                                         PolylendDistributionManager,
+contract MetaLoanIncentivesController is IMetaLoanIncentivesController,
+                                         MetaLoanDistributionManager,
                                          Ownable
 {
     using SafeMath for uint256;
@@ -38,7 +38,7 @@ contract PolylendIncentivesController is IPolylendIncentivesController,
         address pcoin,
         address emissionManager,
         uint256 distributionDuration
-    ) PolylendDistributionManager(emissionManager, distributionDuration)
+    ) MetaLoanDistributionManager(emissionManager, distributionDuration)
     {
         require(pcoin.isContract(), "Pcoin is not contract");
         REWARD_TOKEN = IERC20Detailed(pcoin);

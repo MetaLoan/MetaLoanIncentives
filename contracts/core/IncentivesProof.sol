@@ -6,7 +6,7 @@ import {Address} from '../lib/Address.sol';
 import {Ownable} from '../lib/Ownable.sol';
 import {SafeMath} from '../lib/SafeMath.sol';
 import {IIncentivesProof} from '../interfaces/IIncentivesProof.sol';
-import {IPolylendIncentivesController} from '../interfaces/IPolylendIncentivesController.sol';
+import {IMetaLoanIncentivesController} from '../interfaces/IMetaLoanIncentivesController.sol';
 
 contract IncentivesProof is IIncentivesProof, Ownable {
     using Address for address;
@@ -19,7 +19,7 @@ contract IncentivesProof is IIncentivesProof, Ownable {
     string private _name;
     string private _symbol;
     uint8 private _decimals;
-    IPolylendIncentivesController internal _incentivesController;
+    IMetaLoanIncentivesController internal _incentivesController;
     address private _minter;
 
     function initialize(
@@ -34,7 +34,7 @@ contract IncentivesProof is IIncentivesProof, Ownable {
         _name = name_;
         _symbol = symbol_;
         _decimals = decimals_;
-        _incentivesController = (IPolylendIncentivesController)(incentivesController);
+        _incentivesController = (IMetaLoanIncentivesController)(incentivesController);
         _minter = minter_;
     }
 

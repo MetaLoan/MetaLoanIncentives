@@ -4,9 +4,9 @@ pragma solidity ^0.8.0;
 
 pragma experimental ABIEncoderV2;
 
-import {IPolylendDistributionManager} from '../interfaces/IPolylendDistributionManager.sol';
+import {IMetaLoanDistributionManager} from '../interfaces/IMetaLoanDistributionManager.sol';
 
-interface IPolylendIncentivesController is IPolylendDistributionManager {
+interface IMetaLoanIncentivesController is IMetaLoanDistributionManager {
 
     function handleAction(
         address user,

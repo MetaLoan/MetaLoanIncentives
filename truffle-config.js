@@ -97,11 +97,17 @@ module.exports = {
        skipDryRun: true
      },
      bsc_testnet: {
-        provider: () => new HDWalletProvider(mnemonicArr, "https://data-seed-prebsc-2-s2.binance.org:8545/"),
-        network_id: 97,       // bsc Testnet
-        gas: 5500000,
-        confirmations: 2,
+        provider: function() {
+            return new HDWalletProvider(mnemonicArr,
+                                        "https://data-seed-prebsc-1-s1.binance.org:8545/",
+                                        0,
+                                        mnemonicArr.length,
+                                        false);
+        },
+        network_id: "97",       // bsc Testnet
+        //confirmations: 2,
         timeoutBlocks: 200,
+        networkCheckTimeout: 90000,
         skipDryRun: true
      }
   },

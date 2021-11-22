@@ -45,6 +45,10 @@ async function PrintAsset(data, symbol) {
 }
 
 module.exports = async function (deployer, network, accounts) {
+    if ( network == 'test' ) {
+        return;
+    }
+
     if ( network == 'mumbai' ) {
         var owner = accounts[0];
         var PolylendICIns = await PolylendIncentivesController.at(PCoinICAddress);

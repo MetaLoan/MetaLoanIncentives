@@ -8,9 +8,9 @@ import {DistributionTypes} from '../lib/DistributionTypes.sol';
 import {Address} from "../lib/Address.sol";
 
 import {IIncentivesProof} from '../interfaces/IIncentivesProof.sol';
-import {IPolylendDistributionManager} from "../interfaces/IPolylendDistributionManager.sol";
+import {IMetaLoanDistributionManager} from "../interfaces/IMetaLoanDistributionManager.sol";
 
-contract PolylendDistributionManager is IPolylendDistributionManager {
+contract MetaLoanDistributionManager is IMetaLoanDistributionManager {
     using SafeMath for uint256;
     using Address for address;
 
@@ -142,6 +142,7 @@ contract PolylendDistributionManager is IPolylendDistributionManager {
         require(algorithmInput.max > algorithmInput.min, 'Params config fail for max <= min');
         require(algorithmInput.max < RATIO_BASE, 'Params config fail for max >= RATIO_BASE');
         require(algorithmInput.threshold < RATIO_BASE, 'Params config fail for threshold >= RATIO_BASE');
+        require(algorithmInput.threshold > 0, 'Params config fail for threshold == 0');
 
         VdRatioMax = algorithmInput.max;
         VdRatioMin = algorithmInput.min;
@@ -288,17 +289,13 @@ contract PolylendDistributionManager is IPolylendDistributionManager {
 
         uint256 currentTimestamp =
             block.timestamp > DISTRIBUTION_END ? DISTRIBUTION_END : block.timestamp;
-        uint256 timeDelta = currentTimestamp.sub(lastUpdateTimestamp);
+        uint256 timeDelta = currentTimestamp.sub(lastUpdateTimestamp, "_getAssetIndex:timestamp current less last");
         uint256 index = emissionPerSecond.mul(timeDelta).mul(_PRECISION);
         if ( ratio < 9999 ) {
-            index = index.mul(ratio).div(RATIO_BASE);
+            index = index.mul(ratio).div(RATIO_BASE, "_getAssetIndex:div RATIO_BASE = 0");
         }
-        index = index.div(totalBalance).add(currentIndex);
+        index = index.div(totalBalance, "_getAssetIndex:div totalBalance = 0").add(currentIndex);
 
-        //uint256 index = emissionPerSecond.mul(timeDelta).mul(_PRECISION).div(totalBalance).add(currentIndex);
-        /*if ( ratio < 9999 ) {
-            index = index.mul(ratio).div(RATIO_BASE);
-        }*/
         return index;
     }
 
@@ -323,31 +320,31 @@ contract PolylendDistributionManager is IPolylendDistributionManager {
     {
         if ( variableTokenTotalSupply > 0 && aTokenTotalSupply == 0 ) {
             aTokenConfig.ratio = 1;
-            variableTokenConfig.ratio = RATIO_BASE.sub(1);
+            variableTokenConfig.ratio = RATIO_BASE.sub(1, "_updateRatio-1:RATIO_BASE less 1");
             return;
         }
 
         if ( variableTokenTotalSupply == 0 ) {  // the maximum ratio
-            aTokenConfig.ratio = RATIO_BASE.sub(1);
+            aTokenConfig.ratio = RATIO_BASE.sub(1, "_updateRatio-2:RATIO_BASE less 1");
             variableTokenConfig.ratio = 1;
             return;
         }
 
-        uint256 Ut = variableTokenTotalSupply.mul(RATIO_BASE).div(aTokenTotalSupply);
+        uint256 Ut = variableTokenTotalSupply.mul(RATIO_BASE).div(aTokenTotalSupply, "_updateRatio-1:div aTokenTotalSupply=0");
         if ( Ut >= UtThreshold ) {
-            aTokenConfig.ratio = RATIO_BASE.sub(VdRatioMin);
+            aTokenConfig.ratio = RATIO_BASE.sub(VdRatioMin, "_updateRatio-1:RATIO_BASE less VdRatioMin");
             variableTokenConfig.ratio = VdRatioMin;
         }
         else {
-            uint256 x = Ut.mul(VdRatioMax-VdRatioMin).div(UtThreshold);
-            variableTokenConfig.ratio = VdRatioMax.sub(x);
+            uint256 x = Ut.mul(VdRatioMax-VdRatioMin).div(UtThreshold, "_updateRatio-1: div UtThreshold=0");
+            variableTokenConfig.ratio = VdRatioMax.sub(x, "_updateRatio-1: VdRatioMax less x");
             if ( variableTokenConfig.ratio > VdRatioMax ) {
                 variableTokenConfig.ratio = VdRatioMax;
             }
             if ( variableTokenConfig.ratio < VdRatioMin ) {
                 variableTokenConfig.ratio = VdRatioMin;
             }
-            aTokenConfig.ratio = RATIO_BASE.sub(variableTokenConfig.ratio);
+            aTokenConfig.ratio = RATIO_BASE.sub(variableTokenConfig.ratio, "_updateRatio-1: RATIO_BASE less variableTokenConfig.ratio");
         }
     }
 
@@ -367,7 +364,8 @@ contract PolylendDistributionManager is IPolylendDistributionManager {
         if ( userIndex > 1 ) {
             tUserIndex = userIndex;
         }
-        return principalUserBalance.mul(reserveIndex.sub(tUserIndex)).div(_PRECISION);
+        return principalUserBalance.mul(reserveIndex.sub(tUserIndex, "_getRewards:reserveIndex less tUserIndex")).div(_PRECISION, "_getRewards:div _PRECISION = 0");
+
     }
 
     /**

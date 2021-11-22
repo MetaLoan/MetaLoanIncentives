@@ -2,11 +2,6 @@ const PolylendIncentivesController = artifacts.require("PolylendIncentivesContro
 const BigNumber = require('bignumber.js');
 const IERC20Detailed = artifacts.require("IERC20Detailed");
 
-// dai atoken/vdtoken, 0.0003159 Pcoin/s
-const daiAtoken = '0x82477c3ADE19399dC314131c34d0EA208845d5D4';
-const daiVdtoken = '0xdF331916E5eb758f2429DA6D6a91Eb43650D93a4';
-const daiEmissionPerSecond = new BigNumber('0.0003159').multipliedBy(WAY);
-
 let PolylendICIns;
 
 const configParams = {
@@ -51,9 +46,9 @@ const configParams = {
             'EmissionPerSecond': ''
         },
         'bnb': {
-            'atoken': '',
-            'vdtoken': '',
-            'EmissionPerSecond': ''
+            'atoken': '0x017794167Bb4C929a5ACF886305FB0C620f86C1f',
+            'vdtoken': '0x878c59F327b0ED2241a9A0381Ad6efcc9B8d0984',
+            'EmissionPerSecond': '0.0003159'
         }
     }
 }
@@ -68,7 +63,11 @@ async function PrintAsset(data, symbol) {
 }
 
 module.exports = async function (deployer, network, accounts) {
-    var asset = 'wmatic';    // modify when you config asset emission param
+    if ( network == 'test' ) {
+        return;
+    }
+
+    var asset = 'bnb';    // modify when you config asset emission param
 
     var owner = accounts[0];
     var incentives = await PolylendIncentivesController.at(configParams[network]['incentives']);
@@ -85,17 +84,20 @@ module.exports = async function (deployer, network, accounts) {
     AssetConfig.push(emissionPerSecond);
 
     var atokenIns = await IERC20Detailed.at(configParams[network][asset]['atoken']);
+    console.log(await atokenIns.symbol());
     var totalSupply = new BigNumber(await atokenIns.totalSupply());
+    console.log(totalSupply.toString());
     AssetConfig.push(totalSupply.toString());
     AssetConfig.push(atokenIns.address);
-    var vdtokenIns = await ERC20.at(configParams[network][asset]['vdtoken']);
+    var vdtokenIns = await IERC20Detailed.at(configParams[network][asset]['vdtoken']);
     totalSupply = new BigNumber(await vdtokenIns.totalSupply());
     AssetConfig.push(totalSupply.toString());
     AssetConfig.push(vdtokenIns.address);
     AssetConfigInput.push(AssetConfig);
 
+    console.log(emissionManager);
     console.log("Asset=" + asset + " config input:" + AssetConfigInput);
-
+    console.log(await incentives.REWARD_TOKEN());
     await incentives.configureAssets(AssetConfigInput, {from: emissionManager});
 
     var mintEmissionParams = await incentives.assets(atokenIns.address);
