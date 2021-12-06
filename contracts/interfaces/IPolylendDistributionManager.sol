@@ -4,7 +4,7 @@ pragma experimental ABIEncoderV2;
 
 import {DistributionTypes} from '../lib/DistributionTypes.sol';
 
-interface IMetaLoanDistributionManager {
+interface IPolylendDistributionManager {
 
     function configureAssets(DistributionTypes.AssetConfigInput[] calldata assetsConfigInput)
         external;

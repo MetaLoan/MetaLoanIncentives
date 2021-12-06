@@ -2,12 +2,12 @@ const FarmPoolFactory = artifacts.require("FarmPoolFactory");
 const Farm = artifacts.require("Farm");
 const IncentivesProof = artifacts.require("IncentivesProof");
 const ERC20 = artifacts.require("ERC20");
-const IncentivesController = artifacts.require("MetaLoanIncentivesController");
+const IncentivesController = artifacts.require("PolylendIncentivesController");
 const BigNumber = require('bignumber.js');
 
 
 let farmPoolIns;
-let mcoinIns;
+let PCoinIns;
 let owner;
 let Andy;
 let Joan;
@@ -44,18 +44,19 @@ contract('FarmPoolFactory', async accounts => {
             isInit = false;
 
             await web3.eth.sendTransaction({from: accounts[6], to: Andy, value: '80000000000000000000'});
+            await web3.eth.sendTransaction({from: accounts[7], to: Joan, value: '80000000000000000000'});
             console.log("ddd=" + new BigNumber(await web3.eth.getBalance(Andy)).toString());
 
             farmPoolIns = await FarmPoolFactory.deployed();
-            mcoinIns = await ERC20.at('0x8CdaF0CD259887258Bc13a92C0a6dA92698644C0');
-            var decimals = await mcoinIns.decimals();
+            PCoinIns = await ERC20.at('0x8CdaF0CD259887258Bc13a92C0a6dA92698644C0');
+            var decimals = await PCoinIns.decimals();
             WAY = new BigNumber('10').exponentiatedBy(decimals);
-            console.log(await mcoinIns.symbol());
-            icIns = await farmPoolIns.getMetaLoanIncentivesController();
+            console.log(await PCoinIns.symbol());
+            icIns = await farmPoolIns.getPolylendIncentivesController();
             icIns = await IncentivesController.at(icIns);
             console.log("_PRECISION=" + await icIns._PRECISION());
             var MintAmount = new BigNumber('1e+23');
-            await mcoinIns.mint(icIns.address, MintAmount, {from: owner});
+            await PCoinIns.mint(icIns.address, MintAmount, {from: owner});
 
             lpIns = await ERC20.at('0xAa588d3737B611baFD7bD713445b314BD453a5C8');
         }
@@ -63,12 +64,12 @@ contract('FarmPoolFactory', async accounts => {
 
     it('Create Farm', async() => {
         var farmList = await farmPoolIns.getFarmList();
-        // 0.001 mcoin/sec
+        // 0.001 PCoin/sec
         var emissionPerSecond = new BigNumber('0.001');
         emissionPerSecond = emissionPerSecond.multipliedBy(WAY);
         console.log(farmList);
         await farmPoolIns.createFarm(lpIns.address,
-                                     'MetaLoan Farm LP',
+                                     'Polylend Farm LP',
                                      'PFLP',
                                      emissionPerSecond,
                                      {from: owner});
@@ -105,7 +106,7 @@ contract('FarmPoolFactory', async accounts => {
         await PrintAsset(mintEmissionParams, 'PFLP');
         console.log(new BigNumber(await icIns.getUserIndex(farmContext.proof, Andy)).toNumber());
         console.log(new BigNumber(await icIns.getBlockTime()).toNumber());
-        await farm.deposit(depositAmount, {from: Andy});
+        await farm.deposit(depositAmount, {from: Andy, gasPrice: 10000000000000, gas:4712388});
         //console.log(new BigNumber(await icIns.getUserIndex(farmContext.proof, Andy)).toNumber());
         //console.log(new BigNumber(await icIns.getBlockTime()).toNumber());
         await farm.deposit(depositAmount, {from: Joan});

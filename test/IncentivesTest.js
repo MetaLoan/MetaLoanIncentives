@@ -1,14 +1,14 @@
 const ERC20 = artifacts.require("ERC20");
 const IncentivesProof = artifacts.require("IncentivesProof");
-const MetaLoanIncentivesController = artifacts.require("MetaLoanIncentivesController");
+const PolylendIncentivesController = artifacts.require("PolylendIncentivesController");
 const BigNumber = require("bignumber.js");
 
 
 const WAY = new BigNumber("1e+18");
 
 let isInit = true;
-let MCoinIncentives;
-let MCoin;
+let PCoinIncentives;
+let PCoin;
 let WmaticAtoken;
 let WmaticVdtoken;
 let MintToken;
@@ -52,13 +52,13 @@ async function sleep(delay) {
 }
 
 
-contract('MCoinIncentivesController', async accounts => {
+contract('PCoinIncentivesController', async accounts => {
     beforeEach(async () => {
         if ( isInit == true ) {
-            MCoinIncentives = await MetaLoanIncentivesController.deployed();
-            var PRECISION = new BigNumber(await MCoinIncentives.DISTRIBUTION_END());
+            PCoinIncentives = await PolylendIncentivesController.deployed();
+            var PRECISION = new BigNumber(await PCoinIncentives.DISTRIBUTION_END());
             console.log("PRECISION=" + PRECISION.toNumber());
-            console.log(new BigNumber(await MCoinIncentives.getBlockTime()).toNumber());
+            console.log(new BigNumber(await PCoinIncentives.getBlockTime()).toNumber());
             owner = accounts[0];
             emissionManager = accounts[1];
             minter = accounts[2];
@@ -67,14 +67,17 @@ contract('MCoinIncentivesController', async accounts => {
             Joan = accounts[5];
 
             await web3.eth.sendTransaction({from: accounts[6], to: minter, value: '80000000000000000000'});
+            await web3.eth.sendTransaction({from: accounts[7], to: Andy, value: '80000000000000000000'});
+            await web3.eth.sendTransaction({from: accounts[8], to: James, value: '80000000000000000000'});
+            await web3.eth.sendTransaction({from: accounts[9], to: Joan, value: '80000000000000000000'});
             console.log("aaaad=" + new BigNumber(await web3.eth.getBalance(minter)).toString());
-            MCoin = await ERC20.at('0x8CdaF0CD259887258Bc13a92C0a6dA92698644C0');
+            PCoin = await ERC20.at('0x8CdaF0CD259887258Bc13a92C0a6dA92698644C0');
             WmaticAtoken = await IncentivesProof.at('0x345cA3e014Aaf5dcA488057592ee47305D9B3e10');
             WmaticVdtoken = await IncentivesProof.at('0x8f0483125FCb9aaAEFA9209D8E9d7b9C8B9Fb90F');
             MintToken = await IncentivesProof.at('0x2C2B9C9a4a25e24B174f26114e8926a9f2128FE4');
 
-            var symbol = await MCoin.symbol();
-            console.log('MCoin symbol=' + symbol);
+            var symbol = await PCoin.symbol();
+            console.log('PCoin symbol=' + symbol);
             symbol = await WmaticAtoken.symbol();
             console.log('WmaticAtoken symbol=' + symbol);
             symbol = await WmaticVdtoken.symbol();
@@ -83,11 +86,11 @@ contract('MCoinIncentivesController', async accounts => {
             console.log('MintToken symbol=' + symbol);
 
             isInit = false;
-            console.log(new BigNumber(await MCoinIncentives.getBlockTime()).toNumber());
+            console.log(new BigNumber(await PCoinIncentives.getBlockTime()).toNumber());
 
             // mint reward
             var mintSupply = web3.utils.toWei('100', 'ether');
-            await MCoin.mint(MCoinIncentives.address, mintSupply, {from: owner});
+            await PCoin.mint(PCoinIncentives.address, mintSupply, {from: owner});
 
             assets.push(WmaticAtoken.address);
             assets.push(WmaticVdtoken.address);
@@ -97,7 +100,7 @@ contract('MCoinIncentivesController', async accounts => {
     it('Config', async() => {
         var AssetConfigInput = [];
         var AssetConfig = [];
-        var emissionPerSecond = web3.utils.toWei('0.001', 'ether');   // emissionPerSecond is 0.001 MCoin
+        var emissionPerSecond = web3.utils.toWei('0.001', 'ether');   // emissionPerSecond is 0.001 PCoin
         // first input: token address and staked is 0;
         curWmaticAtokenEmissionRate = new BigNumber(emissionPerSecond.toString()).div(WAY);
         AssetConfig.push(emissionPerSecond);
@@ -110,7 +113,7 @@ contract('MCoinIncentivesController', async accounts => {
 
         AssetConfig = [];
 
-        emissionPerSecond = web3.utils.toWei('0.0002', 'ether');   // emissionPerSecond is 0.0002 MCoin for mint
+        emissionPerSecond = web3.utils.toWei('0.0002', 'ether');   // emissionPerSecond is 0.0002 PCoin for mint
         curMintTokenEmissionRate = new BigNumber(emissionPerSecond.toString()).div(WAY);
         AssetConfig.push(emissionPerSecond);
         AssetConfig.push(0);
@@ -122,19 +125,19 @@ contract('MCoinIncentivesController', async accounts => {
 
         console.log("Config input:" + AssetConfigInput);
 
-        await MCoinIncentives.configureAssets(AssetConfigInput, {from: emissionManager});
+        await PCoinIncentives.configureAssets(AssetConfigInput, {from: emissionManager});
 
-        var mintEmissionParams = await MCoinIncentives.assets(MintToken.address);
+        var mintEmissionParams = await PCoinIncentives.assets(MintToken.address);
         await PrintAsset(mintEmissionParams, await MintToken.symbol());
-        mintEmissionParams = await MCoinIncentives.assets(WmaticAtoken.address);
+        mintEmissionParams = await PCoinIncentives.assets(WmaticAtoken.address);
         await PrintAsset(mintEmissionParams, (await WmaticAtoken.symbol()));
-        mintEmissionParams = await MCoinIncentives.assets(WmaticVdtoken.address);
+        mintEmissionParams = await PCoinIncentives.assets(WmaticVdtoken.address);
         await PrintAsset(mintEmissionParams, (await WmaticVdtoken.symbol()));
 
-        var assetPool = await MCoinIncentives._assetPool(0);
+        var assetPool = await PCoinIncentives._assetPool(0);
         console.log(assetPool);
         // test success for configureAssets by other account not emissionManager
-        // await MCoinIncentives.configureAssets(AssetConfigInput, {from: owner});
+        // await PCoinIncentives.configureAssets(AssetConfigInput, {from: owner});
     });
 
     it('handlerAction', async() => {
@@ -142,40 +145,40 @@ contract('MCoinIncentivesController', async accounts => {
         //console.log(userBalance.toString());
         await WmaticAtoken.mint(Andy, userBalance.toString(), {from: minter});
 
-        var mintEmissionParams = await MCoinIncentives.assets(WmaticAtoken.address);
+        var mintEmissionParams = await PCoinIncentives.assets(WmaticAtoken.address);
         await PrintAsset(mintEmissionParams, (await WmaticAtoken.symbol()));
-        mintEmissionParams = await MCoinIncentives.assets(WmaticVdtoken.address);
+        mintEmissionParams = await PCoinIncentives.assets(WmaticVdtoken.address);
         await PrintAsset(mintEmissionParams, (await WmaticVdtoken.symbol()));
 
-        console.log(new BigNumber(await MCoinIncentives.getBlockTime()).toNumber());
-        mintStartTimestamp = new BigNumber(await MCoinIncentives.getBlockTime());
+        console.log(new BigNumber(await PCoinIncentives.getBlockTime()).toNumber());
+        mintStartTimestamp = new BigNumber(await PCoinIncentives.getBlockTime());
 
         userBalance = web3.utils.toWei('5', 'ether');
-        await WmaticAtoken.mint(Andy, userBalance.toString(), {from: minter});
+        await WmaticAtoken.mint(Andy, userBalance.toString(), {from: minter, gasPrice: 10000000000000, gas:4712388});
         //totalSupply = new BigNumber(await WmaticAtoken.totalSupply()).div(WAY);
         //userBalance = new BigNumber(await WmaticAtoken.balanceOf(Andy)).div(WAY);
         //console.log(totalSupply.toNumber() + ":" + userBalance.toNumber());
     });
 
     it('getReward', async() => {
-        var index = new BigNumber(await MCoinIncentives.getUserIndex(WmaticAtoken.address, Andy));
+        var index = new BigNumber(await PCoinIncentives.getUserIndex(WmaticAtoken.address, Andy));
         console.log('xxxx=' + index.toNumber());
-        var reward = new BigNumber(await MCoinIncentives.getRewardsBalance(assets, Andy, {from: Andy}));
-        var curBlockTime = new BigNumber(await MCoinIncentives.getBlockTime());
+        var reward = new BigNumber(await PCoinIncentives.getRewardsBalance(assets, Andy, {from: Andy}));
+        var curBlockTime = new BigNumber(await PCoinIncentives.getBlockTime());
         curBlockTime = curBlockTime.minus(mintStartTimestamp);
         var mintTotal = curBlockTime.multipliedBy(curWmaticAtokenEmissionRate);
         assert.equal( reward.div(WAY).toNumber(), mintTotal.toNumber() );
         //console.log(' Andy reward=' +  + ",tatol mint=" + mintTotal.toNumber());
-        //mintEmissionParams = await MCoinIncentives.assets(WmaticAtoken.address);
+        //mintEmissionParams = await PCoinIncentives.assets(WmaticAtoken.address);
         //await PrintAsset(mintEmissionParams, (await WmaticAtoken.symbol()));
-        var unreward = new BigNumber(await MCoinIncentives.getUserUnclaimedRewards(Andy)).div(WAY);
+        var unreward = new BigNumber(await PCoinIncentives.getUserUnclaimedRewards(Andy)).div(WAY);
         console.log(unreward.toNumber());
     });
 
     it('mulit-handlerAction', async() => {
         var userBalance = web3.utils.toWei('20', 'ether');
         console.log(userBalance.toString());
-        var mintEmissionParams = await MCoinIncentives.assets(WmaticAtoken.address);
+        var mintEmissionParams = await PCoinIncentives.assets(WmaticAtoken.address);
         await PrintAsset(mintEmissionParams, (await WmaticAtoken.symbol()));
         await WmaticAtoken.mint(James, userBalance.toString(), {from: minter});
 
@@ -183,30 +186,30 @@ contract('MCoinIncentivesController', async accounts => {
         //var userBalance = new BigNumber(await WmaticAtoken.balanceOf(Andy)).div(WAY);
         //console.log(totalSupply.toNumber() + ":" + userBalance.toNumber());
 
-        var curBlockTime = new BigNumber(await MCoinIncentives.getBlockTime());
+        var curBlockTime = new BigNumber(await PCoinIncentives.getBlockTime());
         //console.log(curBlockTime.toNumber());
-        //console.log(new BigNumber(await MCoinIncentives.getUserIndex(WmaticAtoken.address, Andy)).toNumber());
-        var reward = new BigNumber(await MCoinIncentives.getRewardsBalance(assets, Andy, {from: Andy}));
+        //console.log(new BigNumber(await PCoinIncentives.getUserIndex(WmaticAtoken.address, Andy)).toNumber());
+        var reward = new BigNumber(await PCoinIncentives.getRewardsBalance(assets, Andy, {from: Andy}));
         curBlockTime = curBlockTime.minus(mintStartTimestamp);
         var mintTotal = curBlockTime.multipliedBy(curWmaticAtokenEmissionRate);
         assert.equal( reward.div(WAY).toNumber(), mintTotal.toNumber() );
 
         userBalance = web3.utils.toWei('10', 'ether');
-        mintEmissionParams = await MCoinIncentives.assets(WmaticAtoken.address);
+        mintEmissionParams = await PCoinIncentives.assets(WmaticAtoken.address);
         await PrintAsset(mintEmissionParams, (await WmaticAtoken.symbol()));
-        await WmaticAtoken.burn(James, userBalance.toString(), {from: minter});
-        var AndyReward = new BigNumber(await MCoinIncentives.getRewardsBalance(assets, Andy, {from: Andy}));
-        var JamesReward = new BigNumber(await MCoinIncentives.getRewardsBalance(assets, James, {from: James}));
+        await WmaticAtoken.burn(James, userBalance.toString(), {from: minter, gasPrice: 10000000000000, gas:4712388});
+        var AndyReward = new BigNumber(await PCoinIncentives.getRewardsBalance(assets, Andy, {from: Andy}));
+        var JamesReward = new BigNumber(await PCoinIncentives.getRewardsBalance(assets, James, {from: James}));
         AndyReward = AndyReward.div(WAY);
         JamesReward = JamesReward.div(WAY);
         // console.log(AndyReward.toNumber() + ":" + JamesReward.toNumber());
-        curBlockTime = new BigNumber(await MCoinIncentives.getBlockTime());
+        curBlockTime = new BigNumber(await PCoinIncentives.getBlockTime());
         // console.log(curBlockTime.toNumber());
         curBlockTime = curBlockTime.minus(mintStartTimestamp);
         mintTotal = curBlockTime.multipliedBy(curWmaticAtokenEmissionRate);
         // console.log(AndyReward.toNumber() + "," + JamesReward.toNumber() + ":" + mintTotal.toNumber());
         assert.equal( AndyReward.plus(JamesReward).toNumber().toFixed(5), mintTotal.toNumber() );
-        curBlockTime = new BigNumber(await MCoinIncentives.getBlockTime());
+        curBlockTime = new BigNumber(await PCoinIncentives.getBlockTime());
         console.log(curBlockTime.toNumber());
     });
 
@@ -214,21 +217,21 @@ contract('MCoinIncentivesController', async accounts => {
         var userBalance = web3.utils.toWei('5', 'ether');
         await WmaticVdtoken.mint(Joan, userBalance.toString(), {from: minter});
 
-        var curBlockTime = new BigNumber(await MCoinIncentives.getBlockTime());
+        var curBlockTime = new BigNumber(await PCoinIncentives.getBlockTime());
         console.log(curBlockTime.toNumber());
-        var mintEmissionParams = await MCoinIncentives.assets(WmaticAtoken.address);
+        var mintEmissionParams = await PCoinIncentives.assets(WmaticAtoken.address);
         await PrintAsset(mintEmissionParams, (await WmaticAtoken.symbol()));
-        mintEmissionParams = await MCoinIncentives.assets(WmaticVdtoken.address);
+        mintEmissionParams = await PCoinIncentives.assets(WmaticVdtoken.address);
         await PrintAsset(mintEmissionParams, (await WmaticVdtoken.symbol()));
-        var AndyReward = new BigNumber(await MCoinIncentives.getRewardsBalance(assets, Andy, {from: Andy}));
-        var JamesReward = new BigNumber(await MCoinIncentives.getRewardsBalance(assets, James, {from: James}));
-        var JoanReward = new BigNumber(await MCoinIncentives.getRewardsBalance(assets, Joan, {from: Joan}));
+        var AndyReward = new BigNumber(await PCoinIncentives.getRewardsBalance(assets, Andy, {from: Andy}));
+        var JamesReward = new BigNumber(await PCoinIncentives.getRewardsBalance(assets, James, {from: James}));
+        var JoanReward = new BigNumber(await PCoinIncentives.getRewardsBalance(assets, Joan, {from: Joan}));
 
         AndyReward = AndyReward.div(WAY);
         JamesReward = JamesReward.div(WAY);
         JoanReward = JoanReward.div(WAY);
         console.log(AndyReward.toNumber() + ',' + JamesReward.toNumber() + ',' + JoanReward.toNumber());
-        var curBlockTime = new BigNumber(await MCoinIncentives.getBlockTime());
+        var curBlockTime = new BigNumber(await PCoinIncentives.getBlockTime());
                 // console.log(curBlockTime.toNumber());
         curBlockTime = curBlockTime.minus(mintStartTimestamp);
         mintTotal = curBlockTime.multipliedBy(curWmaticAtokenEmissionRate);
@@ -237,18 +240,18 @@ contract('MCoinIncentivesController', async accounts => {
 
         var userBalance = web3.utils.toWei('5', 'ether');
         await WmaticVdtoken.mint(Joan, userBalance.toString(), {from: minter});
-        mintEmissionParams = await MCoinIncentives.assets(WmaticAtoken.address);
+        mintEmissionParams = await PCoinIncentives.assets(WmaticAtoken.address);
         await PrintAsset(mintEmissionParams, (await WmaticAtoken.symbol()));
-        mintEmissionParams = await MCoinIncentives.assets(WmaticVdtoken.address);
+        mintEmissionParams = await PCoinIncentives.assets(WmaticVdtoken.address);
         await PrintAsset(mintEmissionParams, (await WmaticVdtoken.symbol()));
 
-        AndyReward = new BigNumber(await MCoinIncentives.getRewardsBalance(assets, Andy, {from: Andy}));
-        JamesReward = new BigNumber(await MCoinIncentives.getRewardsBalance(assets, James, {from: James}));
-        JoanReward = new BigNumber(await MCoinIncentives.getRewardsBalance(assets, Joan, {from: Joan}));
+        AndyReward = new BigNumber(await PCoinIncentives.getRewardsBalance(assets, Andy, {from: Andy}));
+        JamesReward = new BigNumber(await PCoinIncentives.getRewardsBalance(assets, James, {from: James}));
+        JoanReward = new BigNumber(await PCoinIncentives.getRewardsBalance(assets, Joan, {from: Joan}));
         AndyReward = AndyReward.div(WAY);
         JamesReward = JamesReward.div(WAY);
         JoanReward = JoanReward.div(WAY);
-        curBlockTime = new BigNumber(await MCoinIncentives.getBlockTime());
+        curBlockTime = new BigNumber(await PCoinIncentives.getBlockTime());
         curBlockTime = curBlockTime.minus(mintStartTimestamp);
         mintTotal = curBlockTime.multipliedBy(curWmaticAtokenEmissionRate);
         //console.log(mintStartTimestamp.toNumber() + ";" + curBlockTime.toNumber());
@@ -257,12 +260,12 @@ contract('MCoinIncentivesController', async accounts => {
     });
 
     it ('reset-emissionManager', async() => {
-        var curBlockTime = new BigNumber(await MCoinIncentives.getBlockTime());
+        var curBlockTime = new BigNumber(await PCoinIncentives.getBlockTime());
         //console.log(curBlockTime.toNumber());
 
         var AssetConfigInput = [];
         var AssetConfig = [];
-        var emissionPerSecond = web3.utils.toWei('0.008', 'ether');   // emissionPerSecond is 0.001 MCoin
+        var emissionPerSecond = web3.utils.toWei('0.008', 'ether');   // emissionPerSecond is 0.001 PCoin
         // first input: token address and staked is 0;
         var totalSupply = new BigNumber(await WmaticAtoken.totalSupply());
         AssetConfig.push(emissionPerSecond);
@@ -274,22 +277,22 @@ contract('MCoinIncentivesController', async accounts => {
 
         AssetConfigInput.push(AssetConfig);
 
-        await MCoinIncentives.configureAssets(AssetConfigInput, {from: emissionManager});
+        await PCoinIncentives.configureAssets(AssetConfigInput, {from: emissionManager});
 
-        curBlockTime = new BigNumber(await MCoinIncentives.getBlockTime());
+        curBlockTime = new BigNumber(await PCoinIncentives.getBlockTime());
         console.log(curBlockTime.toNumber());
         var t_curBlockTime = curBlockTime;
         var t_curBlockTime = t_curBlockTime.minus(mintStartTimestamp);
         g_mintTotalSupply = t_curBlockTime.multipliedBy(curWmaticAtokenEmissionRate);
         console.log(g_mintTotalSupply.toNumber());
         curWmaticAtokenEmissionRate = new BigNumber(emissionPerSecond.toString()).div(WAY);
-        //mintStartTimestamp = new BigNumber(await MCoinIncentives.getBlockTime());
+        //mintStartTimestamp = new BigNumber(await PCoinIncentives.getBlockTime());
         mintStartTimestamp = curBlockTime;
         console.log('change mint start time=' + mintStartTimestamp.toNumber());
 
-        AndyReward = new BigNumber(await MCoinIncentives.getRewardsBalance(assets, Andy, {from: Andy}));
-        JamesReward = new BigNumber(await MCoinIncentives.getRewardsBalance(assets, James, {from: James}));
-        JoanReward = new BigNumber(await MCoinIncentives.getRewardsBalance(assets, Joan, {from: Joan}));
+        AndyReward = new BigNumber(await PCoinIncentives.getRewardsBalance(assets, Andy, {from: Andy}));
+        JamesReward = new BigNumber(await PCoinIncentives.getRewardsBalance(assets, James, {from: James}));
+        JoanReward = new BigNumber(await PCoinIncentives.getRewardsBalance(assets, Joan, {from: Joan}));
         AndyReward = AndyReward.div(WAY);
         JamesReward = JamesReward.div(WAY);
         JoanReward = JoanReward.div(WAY);
@@ -298,25 +301,25 @@ contract('MCoinIncentivesController', async accounts => {
         //           + ',' + AndyReward.plus(JamesReward).plus(JoanReward).toNumber().toFixed(5));
         assert.equal( AndyReward.plus(JamesReward).plus(JoanReward).toNumber().toFixed(5), g_mintTotalSupply.toNumber() );
 
-        //var mintEmissionParams = await MCoinIncentives.assets(WmaticAtoken.address);
+        //var mintEmissionParams = await PCoinIncentives.assets(WmaticAtoken.address);
         //await PrintAsset(mintEmissionParams, (await WmaticAtoken.symbol()));
-        //mintEmissionParams = await MCoinIncentives.assets(WmaticVdtoken.address);
+        //mintEmissionParams = await PCoinIncentives.assets(WmaticVdtoken.address);
         //await PrintAsset(mintEmissionParams, (await WmaticVdtoken.symbol()));
 
         var userBalance = web3.utils.toWei('5', 'ether');
-        await WmaticVdtoken.burn(Joan, userBalance.toString(), {from: minter});
-        curBlockTime = new BigNumber(await MCoinIncentives.getBlockTime());
+        await WmaticVdtoken.burn(Joan, userBalance.toString(), {from: minter, gasPrice: 10000000000000, gas:4712388});
+        curBlockTime = new BigNumber(await PCoinIncentives.getBlockTime());
         //console.log(curBlockTime.toNumber() + ',' + mintStartTimestamp.toNumber());
 
-        AndyReward = new BigNumber(await MCoinIncentives.getRewardsBalance(assets, Andy, {from: Andy}));
-        JamesReward = new BigNumber(await MCoinIncentives.getRewardsBalance(assets, James, {from: James}));
-        JoanReward = new BigNumber(await MCoinIncentives.getRewardsBalance(assets, Joan, {from: Joan}));
+        AndyReward = new BigNumber(await PCoinIncentives.getRewardsBalance(assets, Andy, {from: Andy}));
+        JamesReward = new BigNumber(await PCoinIncentives.getRewardsBalance(assets, James, {from: James}));
+        JoanReward = new BigNumber(await PCoinIncentives.getRewardsBalance(assets, Joan, {from: Joan}));
         AndyReward = AndyReward.div(WAY);
         JamesReward = JamesReward.div(WAY);
         JoanReward = JoanReward.div(WAY);
         console.log(AndyReward.toNumber() + ',' + JamesReward.toNumber() + ',' + JoanReward.toNumber()
                     + ',' + AndyReward.plus(JamesReward).plus(JoanReward).toNumber().toFixed(5));
-        curBlockTime = new BigNumber(await MCoinIncentives.getBlockTime());
+        curBlockTime = new BigNumber(await PCoinIncentives.getBlockTime());
         console.log(curBlockTime.toNumber());
         curBlockTime = curBlockTime.minus(mintStartTimestamp);
         mintTotal = curBlockTime.multipliedBy(curWmaticAtokenEmissionRate);
@@ -325,15 +328,15 @@ contract('MCoinIncentivesController', async accounts => {
     });
 
     it ('check-reward', async() => {
-        var JoanRewards = new BigNumber(await MCoinIncentives.getUserUnclaimedRewards(Joan));
-        // console.log( JoanRewards.div(WAY).toNumber() );
+        var JoanRewards = new BigNumber(await PCoinIncentives.getUserUnclaimedRewards(Joan));
+        console.log( JoanRewards.div(WAY).toNumber() );
 
-        await MCoinIncentives.claimRewards(assets, JoanRewards, Joan, {from: Joan});
-        var JoanMCoinBalance = new BigNumber( await MCoin.balanceOf(Joan));
-        // console.log( JoanMCoinBalance.div(WAY).toNumber() );
-        assert.equal( JoanRewards.toNumber().toFixed(8), JoanMCoinBalance.toNumber().toFixed(8) );
+        await PCoinIncentives.claimRewards(assets, JoanRewards, Joan, {from: Joan, gasPrice: 10000000000000, gas:4712388});
+        var JoanPCoinBalance = new BigNumber( await PCoin.balanceOf(Joan));
+        console.log( JoanPCoinBalance.div(WAY).toNumber() );
+        assert.equal( JoanRewards.toNumber().toFixed(8), JoanPCoinBalance.toNumber().toFixed(8) );
         //console.log( checkReward.logs[5].args['amount'].toString() );
-        var curBlockTime = new BigNumber(await MCoinIncentives.getBlockTime());
+        var curBlockTime = new BigNumber(await PCoinIncentives.getBlockTime());
         console.log(curBlockTime.toNumber());
     });
 
@@ -341,83 +344,84 @@ contract('MCoinIncentivesController', async accounts => {
         var AndyBalance = new BigNumber(await WmaticAtoken.balanceOf(Andy));
         var JamesBalance = new BigNumber(await WmaticAtoken.balanceOf(James));
         var JoanBalance = new BigNumber(await WmaticVdtoken.balanceOf(Joan));
-        //var mintEmissionParams = await MCoinIncentives.assets(WmaticAtoken.address);
+        //var mintEmissionParams = await PCoinIncentives.assets(WmaticAtoken.address);
         //await PrintAsset(mintEmissionParams, (await WmaticAtoken.symbol()));
-        //mintEmissionParams = await MCoinIncentives.assets(WmaticVdtoken.address);
+        //mintEmissionParams = await PCoinIncentives.assets(WmaticVdtoken.address);
         //await PrintAsset(mintEmissionParams, (await WmaticVdtoken.symbol()));
-        //console.log(AndyBalance.div(WAY).toNumber() + "," +
-        //            JamesBalance.div(WAY).toNumber() + "," +
-        //            JoanBalance.div(WAY).toNumber());
+        console.log(AndyBalance.div(WAY).toNumber() + "," +
+                    JamesBalance.div(WAY).toNumber() + "," +
+                    JoanBalance.div(WAY).toNumber());
         //console.log(new BigNumber(await WmaticVdtoken.scaledTotalSupply()).toNumber());
-        await WmaticVdtoken.burn(Joan, JoanBalance, {from: minter});
-        //mintEmissionParams = await MCoinIncentives.assets(WmaticAtoken.address);
+        await WmaticVdtoken.burn(Joan, JoanBalance, {from: minter, gasPrice: 10000000000000, gas:4712388});
+        //mintEmissionParams = await PCoinIncentives.assets(WmaticAtoken.address);
         //await PrintAsset(mintEmissionParams, (await WmaticAtoken.symbol()));
-        //mintEmissionParams = await MCoinIncentives.assets(WmaticVdtoken.address);
+        //mintEmissionParams = await PCoinIncentives.assets(WmaticVdtoken.address);
         //await PrintAsset(mintEmissionParams, (await WmaticVdtoken.symbol()));
         //console.log(new BigNumber(await WmaticAtoken.scaledTotalSupply()).toNumber() + "," + AndyBalance.toNumber());
         console.log("ddd=" + new BigNumber(await web3.eth.getBalance(minter)).toString());
-        await WmaticAtoken.burn(Andy, AndyBalance, {from: minter});
 
-        //mintEmissionParams = await MCoinIncentives.assets(WmaticAtoken.address);
-        //await PrintAsset(mintEmissionParams, (await WmaticAtoken.symbol()));
-        //mintEmissionParams = await MCoinIncentives.assets(WmaticVdtoken.address);
-        //await PrintAsset(mintEmissionParams, (await WmaticVdtoken.symbol()));
-        //console.log(new BigNumber(await WmaticAtoken.scaledTotalSupply()).toNumber() + "," + JamesBalance.toNumber());
-        await WmaticAtoken.burn(James, JamesBalance, {from: minter});
 
-        var mintEmissionParams = await MCoinIncentives.assets(WmaticAtoken.address);
+        mintEmissionParams = await PCoinIncentives.assets(WmaticAtoken.address);
         await PrintAsset(mintEmissionParams, (await WmaticAtoken.symbol()));
-        mintEmissionParams = await MCoinIncentives.assets(WmaticVdtoken.address);
+        mintEmissionParams = await PCoinIncentives.assets(WmaticVdtoken.address);
         await PrintAsset(mintEmissionParams, (await WmaticVdtoken.symbol()));
-        var curBlockTime = new BigNumber(await MCoinIncentives.getBlockTime());
+        console.log(new BigNumber(await WmaticAtoken.scaledTotalSupply()).toNumber() + "," + JamesBalance.toNumber());
+        await WmaticAtoken.burn(Andy, AndyBalance, {from: minter, gasPrice: 10000000000000, gas:4712388});
+        await WmaticAtoken.burn(James, JamesBalance, {from: minter, gasPrice: 10000000000000, gas:4712388});
+
+        var mintEmissionParams = await PCoinIncentives.assets(WmaticAtoken.address);
+        await PrintAsset(mintEmissionParams, (await WmaticAtoken.symbol()));
+        mintEmissionParams = await PCoinIncentives.assets(WmaticVdtoken.address);
+        await PrintAsset(mintEmissionParams, (await WmaticVdtoken.symbol()));
+        var curBlockTime = new BigNumber(await PCoinIncentives.getBlockTime());
         console.log(curBlockTime.toNumber());
         curBlockTime = curBlockTime.minus(mintStartTimestamp);
         mintTotal = curBlockTime.multipliedBy(curWmaticAtokenEmissionRate);
         g_mintTotalSupply = g_mintTotalSupply.plus(mintTotal);
         console.log(g_mintTotalSupply.toNumber());
 
-        var AndyRewards = new BigNumber(await MCoinIncentives.getRewardsBalance(assets, Andy));
-        var JamesRewards = new BigNumber(await MCoinIncentives.getRewardsBalance(assets, James));
-        var JoanRewards = new BigNumber(await MCoinIncentives.getRewardsBalance(assets, Joan));
-        var JoanMCoinBalance = new BigNumber( await MCoin.balanceOf(Joan));
+        var AndyRewards = new BigNumber(await PCoinIncentives.getRewardsBalance(assets, Andy));
+        var JamesRewards = new BigNumber(await PCoinIncentives.getRewardsBalance(assets, James));
+        var JoanRewards = new BigNumber(await PCoinIncentives.getRewardsBalance(assets, Joan));
+        var JoanPCoinBalance = new BigNumber( await PCoin.balanceOf(Joan));
 //        console.log(AndyRewards.div(WAY).toNumber() + "," +
 //                    JamesRewards.div(WAY).toNumber() + "," +
 //                    JoanRewards.div(WAY).toNumber() + "," +
-//                    JoanMCoinBalance.div(WAY).toNumber() + "," +
-//                    AndyRewards.plus(JamesRewards).plus(JoanRewards).plus(JoanMCoinBalance).div(WAY));
-        assert.equal( AndyRewards.plus(JamesRewards).plus(JoanRewards).plus(JoanMCoinBalance).div(WAY).toNumber().toFixed(8),
+//                    JoanPCoinBalance.div(WAY).toNumber() + "," +
+//                    AndyRewards.plus(JamesRewards).plus(JoanRewards).plus(JoanPCoinBalance).div(WAY));
+        assert.equal( AndyRewards.plus(JamesRewards).plus(JoanRewards).plus(JoanPCoinBalance).div(WAY).toNumber().toFixed(8),
                       g_mintTotalSupply.toNumber().toFixed(8));
-        curBlockTime = new BigNumber(await MCoinIncentives.getBlockTime());
+        curBlockTime = new BigNumber(await PCoinIncentives.getBlockTime());
         console.log(curBlockTime.toNumber());
 
         // re-mint for andy
         var userBalance = web3.utils.toWei('5', 'ether');
         await WmaticAtoken.mint(Andy, userBalance.toString(), {from: minter});
-        curBlockTime = new BigNumber(await MCoinIncentives.getBlockTime());
+        curBlockTime = new BigNumber(await PCoinIncentives.getBlockTime());
         console.log(curBlockTime.toNumber());
-        var AndyRewards1 = new BigNumber(await MCoinIncentives.getRewardsBalance(assets, Andy));
-        var JamesRewards1 = new BigNumber(await MCoinIncentives.getRewardsBalance(assets, James));
-        var JoanRewards1 = new BigNumber(await MCoinIncentives.getRewardsBalance(assets, Joan));
+        var AndyRewards1 = new BigNumber(await PCoinIncentives.getRewardsBalance(assets, Andy));
+        var JamesRewards1 = new BigNumber(await PCoinIncentives.getRewardsBalance(assets, James));
+        var JoanRewards1 = new BigNumber(await PCoinIncentives.getRewardsBalance(assets, Joan));
         assert.equal(AndyRewards1.toNumber(), AndyRewards.toNumber());
         assert.equal(JamesRewards1.toNumber(), JamesRewards.toNumber());
         assert.equal(JoanRewards1.toNumber(), JoanRewards.toNumber());
     });
 
     it ('retrieve', async() => {
-        var MCoinBalance = new BigNumber(await MCoin.balanceOf(MCoinIncentives.address));
-        //console.log(MCoinBalance.toNumber());
-        //var event = await MCoinIncentives.retrieve(MCoinBalance, {from: Andy});
-        var AndyRewards = new BigNumber(await MCoinIncentives.getRewardsBalance(assets, Andy));
+        var PCoinBalance = new BigNumber(await PCoin.balanceOf(PCoinIncentives.address));
+        //console.log(PCoinBalance.toNumber());
+        //var event = await PCoinIncentives.retrieve(PCoinBalance, {from: Andy});
+        var AndyRewards = new BigNumber(await PCoinIncentives.getRewardsBalance(assets, Andy));
         console.log(AndyRewards.toNumber());
 
-        var event = await MCoinIncentives.retrieve(MCoinBalance, {from: owner});
-        var MCoinBalance1 = new BigNumber(await MCoin.balanceOf(owner));
-        assert.equal(MCoinBalance.toNumber(), MCoinBalance1.toNumber());
+        var event = await PCoinIncentives.retrieve(PCoinBalance, {from: owner});
+        var PCoinBalance1 = new BigNumber(await PCoin.balanceOf(owner));
+        assert.equal(PCoinBalance.toNumber(), PCoinBalance1.toNumber());
 
-        AndyRewards = new BigNumber(await MCoinIncentives.getRewardsBalance(assets, Andy));
+        AndyRewards = new BigNumber(await PCoinIncentives.getRewardsBalance(assets, Andy));
         console.log(AndyRewards.toNumber());
-        // await MCoinIncentives.claimRewards(assets, AndyRewards, Andy, {from: Andy});
-        //console.log(MCoinBalance.toNumber());
+        // await PCoinIncentives.claimRewards(assets, AndyRewards, Andy, {from: Andy});
+        //console.log(PCoinBalance.toNumber());
         //console.log(event);
     });
 
@@ -428,7 +432,7 @@ contract('MCoinIncentivesController', async accounts => {
             8500
         ];
 
-        await MCoinIncentives.configureAlgorithmParams(algorithmParams, {from: emissionManager});
+        await PCoinIncentives.configureAlgorithmParams(algorithmParams, {from: emissionManager});
     });
 
 })

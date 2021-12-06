@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 import {IncentivesProof} from '../core/IncentivesProof.sol';
 import {Ownable} from '../lib/Ownable.sol';
-import {MetaLoanIncentivesController} from '../core/MetaLoanIncentivesController.sol';
+import {PolylendIncentivesController} from '../core/PolylendIncentivesController.sol';
 import {IERC20Detailed} from '../interfaces/IERC20Detailed.sol';
 import {DistributionTypes} from '../lib/DistributionTypes.sol';
 
@@ -18,8 +18,8 @@ contract FarmPoolFactory is Ownable {
     // key asset, value is the address of farm
     mapping (address => PoolContext) internal _farms;
     address[] internal _farmList;
-    // MetaLoanIncentivesController
-    MetaLoanIncentivesController internal _incentivesController;
+    // PolylendIncentivesController
+    PolylendIncentivesController internal _incentivesController;
     // mint distribution duration = 10 years
     uint256 public constant _distributionDuration = 3650 days;
 
@@ -27,13 +27,13 @@ contract FarmPoolFactory is Ownable {
 
     /*
     * @dev construct
-    * @param salt for create the instance of MetaLoanIncentivesController
+    * @param salt for create the instance of PolylendIncentivesController
     */
     constructor (
         address pcoin,
         bytes32 salt)
     {
-        bytes memory bytecode = type(MetaLoanIncentivesController).creationCode;
+        bytes memory bytecode = type(PolylendIncentivesController).creationCode;
         bytecode = abi.encodePacked(bytecode, abi.encode(pcoin, address(this), _distributionDuration));
 
         address predictedAddress = address(uint160(uint(keccak256(abi.encodePacked(
@@ -43,11 +43,11 @@ contract FarmPoolFactory is Ownable {
                 keccak256(bytecode)
             )
             ))));
-        _incentivesController = new MetaLoanIncentivesController{salt: salt}(pcoin, address(this), _distributionDuration);
-        require(address(_incentivesController) == predictedAddress, 'Create MetaLoanIncentivesController fail for address');
+        _incentivesController = new PolylendIncentivesController{salt: salt}(pcoin, address(this), _distributionDuration);
+        require(address(_incentivesController) == predictedAddress, 'Create PolylendIncentivesController fail for address');
     }
 
-    function getMetaLoanIncentivesController()
+    function getPolylendIncentivesController()
         external
         view
         returns(address)

@@ -2,8 +2,9 @@ const ERC20 = artifacts.require("ERC20");
 const WMATIC_ATOKEN = artifacts.require("IncentivesProof");
 const WMATIC_VDTOKEN = artifacts.require("IncentivesProof");
 const MINT_TOKEN = artifacts.require("IncentivesProof");
-const MCoinIncentivesController = artifacts.require("MetaLoanIncentivesController");
+const PCoinIncentivesController = artifacts.require("PolylendIncentivesController");
 const FarmPoolFactory = artifacts.require("FarmPoolFactory");
+const StakePool = artifacts.require("StakePool");
 
 module.exports = async function (deployer, network, accounts) {
     if ( network == 'test' ) {
@@ -11,20 +12,20 @@ module.exports = async function (deployer, network, accounts) {
         var emissionManager = accounts[1];
         var minter = accounts[2];
 
-        await deployer.deploy(ERC20, "MetaLoan Token", "MCoin", {from: owner});
-        var MCoin = await ERC20.deployed();
-        console.log("MCoin address=" + MCoin.address);
+        await deployer.deploy(ERC20, "Polylend Token", "PCoin", {from: owner});
+        var PCoin = await ERC20.deployed();
+        console.log("PCoin address=" + PCoin.address);
 
         let timestamp = (await web3.eth.getBlock()).timestamp;
-        console.log('MCoin.address=' + MCoin.address + ",timestamp=" + timestamp);
+        console.log('PCoin.address=' + PCoin.address + ",timestamp=" + timestamp);
 
         var durtime = 10*365*24*3600;
-        await deployer.deploy(MCoinIncentivesController,
-                              MCoin.address,
+        await deployer.deploy(PCoinIncentivesController,
+                              PCoin.address,
                               emissionManager,
                               durtime,
                               {from: owner});
-        var mcoinIncentivesController = await MCoinIncentivesController.deployed();
+        var pcoinIncentivesController = await PCoinIncentivesController.deployed();
 
         await deployer.deploy(WMATIC_ATOKEN, {from: owner});
         var wmaticAtoken = await WMATIC_ATOKEN.deployed();
@@ -32,7 +33,7 @@ module.exports = async function (deployer, network, accounts) {
             "Wmatic aToken",
             "aWmatic",
             18,
-            mcoinIncentivesController.address,
+            pcoinIncentivesController.address,
             minter,
             {from: owner}
         );
@@ -43,7 +44,7 @@ module.exports = async function (deployer, network, accounts) {
             "Wmatic vdToken",
             "vdWmatic",
             18,
-            mcoinIncentivesController.address,
+            pcoinIncentivesController.address,
             minter,
             {from: owner}
         );
@@ -54,21 +55,24 @@ module.exports = async function (deployer, network, accounts) {
             "Mint Token",
             "Mint",
             6,
-            mcoinIncentivesController.address,
+            pcoinIncentivesController.address,
             minter,
             {from: owner}
         );
         console.log('mintAtoken.address=' + mintAtoken.address);
 
-        var salt = new Buffer("MetaLoan Farm Factory", "utf-8");
+        var salt = new Buffer("Polylend Farm Factory", "utf-8");
         await deployer.deploy(FarmPoolFactory,
-                              MCoin.address,
+                              PCoin.address,
                               salt,
                               {from: owner});
         console.log('Farm Factory deploys success');
 
-        await deployer.deploy(ERC20, "MCoin Lp Token", "MLPCoin", {from: owner});
+        await deployer.deploy(ERC20, "PCoin Lp Token", "MLPCoin", {from: owner});
         var lpToken = await ERC20.deployed();
         console.log("Lp-token address=" + lpToken.address);
+
+        await deployer.deploy(StakePool, PCoin.address, {from: owner});
+        console.log("Stake-reward address=" + PCoin.address);
     }
 };

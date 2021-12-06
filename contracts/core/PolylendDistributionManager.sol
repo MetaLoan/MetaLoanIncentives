@@ -8,9 +8,9 @@ import {DistributionTypes} from '../lib/DistributionTypes.sol';
 import {Address} from "../lib/Address.sol";
 
 import {IIncentivesProof} from '../interfaces/IIncentivesProof.sol';
-import {IMetaLoanDistributionManager} from "../interfaces/IMetaLoanDistributionManager.sol";
+import {IPolylendDistributionManager} from "../interfaces/IPolylendDistributionManager.sol";
 
-contract MetaLoanDistributionManager is IMetaLoanDistributionManager {
+contract PolylendDistributionManager is IPolylendDistributionManager {
     using SafeMath for uint256;
     using Address for address;
 
